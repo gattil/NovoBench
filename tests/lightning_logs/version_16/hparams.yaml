@@ -1,0 +1,48 @@
+calculate_precision: true
+dim_feedforward: 1024
+dim_intensity: null
+dim_model: 512
+dropout: 0.0
+isotope_error_range: !!python/tuple
+- 0
+- 1
+lr: 0.0005
+max_charge: 10
+max_iters: 600000
+max_length: 100
+min_peptide_len: 6
+n_beams: 1
+n_head: 8
+n_layers: 9
+n_log: 1
+out_writer: null
+precursor_mass_tol: 50
+residues:
+  A: 71.03711
+  C(+57.02): 160.03065
+  D: 115.02694
+  E: 129.04259
+  F: 147.06841
+  G: 57.02146
+  H: 137.05891
+  I: 113.08406
+  K: 128.09496
+  L: 113.084064
+  M: 131.04049
+  M(+15.99): 147.0354
+  N: 114.04293
+  N(+.98): 115.02695
+  P: 97.05276
+  Q: 128.05858
+  Q(+.98): 129.0426
+  R: 156.10111
+  S: 87.03203
+  T: 101.04768
+  V: 99.06841
+  W: 186.07931
+  Y: 163.06333
+tb_summarywriter: null
+top_match: 1
+train_label_smoothing: 0.01
+warmup_iters: 100000
+weight_decay: 1.0e-05
