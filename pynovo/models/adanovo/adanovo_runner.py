@@ -32,7 +32,7 @@ from pynovo.data import SpectrumData
 logger = logging.getLogger("adanovo")
 
 def init_logger():
-    output = "/jingbo/PyNovo/adanovo_seven.log"
+    output = "/jingbo/PyNovo/adanovo_nine.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)

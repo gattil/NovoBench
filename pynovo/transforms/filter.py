@@ -17,10 +17,14 @@ class SetRangeMZ(BaseTransform):
         for precursor_mz, precursor_charge, mz_array, int_array in zip(data.precursor_mz, data.precursor_charge, data.mz_array, data.intensity_array):
             spectrum = sus.MsmsSpectrum("", precursor_mz, precursor_charge, mz_array.to_numpy().astype(np.float32), int_array.to_numpy().astype(np.float32))
             spectrum.set_mz_range(self.min_mz, self.max_mz)
+            mz = spectrum.mz
+            intensity = spectrum.intensity
             if len(spectrum.mz) == 0:
-                    raise ValueError
-            updated_mz_arrays.append(pl.Series(spectrum.mz))
-            updated_intensity_arrays.append(pl.Series(spectrum.intensity))
+                print('value error')
+                mz = [0,]
+                intensity = [1,]
+            updated_mz_arrays.append(pl.Series(mz))
+            updated_intensity_arrays.append(pl.Series(intensity))
 
         data.set_df(data.df.with_columns([pl.Series("mz_array", updated_mz_arrays, dtype=pl.List(pl.Float32)), 
                               pl.Series("intensity_array", updated_intensity_arrays, dtype=pl.List(pl.Float32))]))
@@ -69,10 +73,14 @@ class FilterIntensity(BaseTransform):
         for precursor_mz, precursor_charge, mz_array, int_array in zip(data.precursor_mz, data.precursor_charge, data.mz_array, data.intensity_array):
             spectrum = sus.MsmsSpectrum("", precursor_mz, precursor_charge, mz_array.to_numpy().astype(np.float32), int_array.to_numpy().astype(np.float32))
             spectrum.filter_intensity(self.min_intensity, self.n_peaks)
+            mz = spectrum.mz
+            intensity = spectrum.intensity
             if len(spectrum.mz) == 0:
-                    raise ValueError
-            updated_mz_arrays.append(pl.Series(spectrum.mz))
-            updated_intensity_arrays.append(pl.Series(spectrum.intensity))
+                print('value error')
+                mz = [0,]
+                intensity = [1,]
+            updated_mz_arrays.append(pl.Series(mz))
+            updated_intensity_arrays.append(pl.Series(intensity))
 
         data.set_df(data.df.with_columns([pl.Series("mz_array", updated_mz_arrays, dtype=pl.List(pl.Float32)), 
                               pl.Series("intensity_array", updated_intensity_arrays, dtype=pl.List(pl.Float32))]))
