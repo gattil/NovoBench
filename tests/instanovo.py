@@ -5,12 +5,12 @@ import pdb
 
 sys.path.append("/jingbo/PyNovo/")
 
-from pynovo.models.instanovo import InstanovoRunner
+from pynovo.models.instanovo.instanovo_runner import InstanovoRunner
 from pynovo.datasets import CustomDataset
 
 file_mapping = {
     "train" : "sample_train.parquet",
-    "valid" : "sample_test.parquet",
+    "valid" : "insta.parquet",
 }
 
 def train():
@@ -22,4 +22,13 @@ def train():
     model = InstanovoRunner(instanovo_config)
     model.train(data.get_train(), data.get_valid()) 
 
-train()
+
+def eval():
+    model_path = '/jingbo/PyNovo/pynovo/save_models/epoch=4-step=80.ckpt'
+    model = InstanovoRunner()
+    dataset = CustomDataset("/jingbo/PyNovo/data", file_mapping)
+    data = dataset.load_data(transform = InstanovoRunner.preprocessing_pipeline())
+    model.evaluate(data.get_valid(), model_path)
+
+eval()
+# train()

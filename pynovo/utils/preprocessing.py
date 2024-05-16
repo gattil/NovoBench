@@ -40,7 +40,8 @@ def convert_mgf_ipc(
     for filepath in filenames:
         exp = load_from_mgf(str(filepath))
         data = []
-        for spectrum in tqdm(exp):
+        # for spectrum in tqdm(exp):
+        for spectrum in exp:
             meta = spectrum.metadata
             peptide = ""
             unmod_peptide = ""

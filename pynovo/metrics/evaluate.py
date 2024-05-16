@@ -208,6 +208,10 @@ def aa_match_batch(
     aa_matches_batch, n_aa1, n_aa2 = [], 0, 0
     n_ptm_1, n_ptm_2 = 0, 0
     
+    for ptm in ptm_list:
+        if ptm not in aa_dict.keys():
+            raise ValueError(f"PTM type {ptm} is not in aa_dict: {aa_dict.keys()}!")
+    
     for peptide1, peptide2 in zip(peptides1, peptides2):
         # Split peptides into individual AAs if necessary.
         if isinstance(peptide1, str):
@@ -314,7 +318,15 @@ def aa_match_metrics(
     recall = np.cumsum(sorted_pred_bools) / len(sorted_pred_bools)
     curve_auc = auc(recall, precision)
     
-    return aa_precision, aa_recall, pep_precision, ptm_recall, ptm_precision, curve_auc
+    metrics_dict = {
+        "aa_precision" : aa_precision,
+        "aa_recall" : aa_recall,
+        "pep_precision" : pep_precision,
+        "ptm_recall" : ptm_recall,
+        "ptm_precision" : ptm_precision,
+        "curve_auc" : curve_auc,
+    }
+    return metrics_dict
 
 
 def aa_precision_recall(

@@ -9,6 +9,8 @@ import logging
 from pynovo.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
 from pynovo.transforms.misc import Compose
 from pynovo.models.instanovo.instanovo_modeling.transformer.train import train
+from pynovo.models.instanovo.instanovo_modeling.transformer.predict import get_preds
+from pynovo.models.instanovo.instanovo_modeling.transformer.model import InstaNovo
 logger = logging.getLogger('instanovo')
 
 def init_logger():
@@ -52,7 +54,7 @@ class InstanovoRunner(object):
     
     def __init__(
         self,
-        config):
+        config=None):
         # init_logger()
         self.config = config
 
@@ -65,8 +67,9 @@ class InstanovoRunner(object):
     
     def evaluate(
         self,
-        model,
-        test_df):
-
-        pass
+        test_df,
+        model_path):
+        model, config = InstaNovo.load(model_path)
+        knapsack_path = '/jingbo/PyNovo/pynovo/save_models/instanovo/knapsack/'
+        get_preds(test_df, model, config, knapsack_path)
 

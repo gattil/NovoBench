@@ -186,7 +186,8 @@ class CasanovoRunner:
         test_loader = CasanovoDataModule(
             df = test_df,
             n_workers=self.config.n_workers,
-            batch_size=self.config.train_batch_size // self.trainer.num_devices
+            # batch_size=self.config.train_batch_size // self.trainer.num_devices
+            batch_size=self.config.predict_batch_size
         ).get_dataloader()
         
         start_time = time.time()

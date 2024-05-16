@@ -6,7 +6,7 @@ from typing import Any
 import torch
 from torch.nn.functional import one_hot
 from enum import Enum
-
+from tqdm import tqdm
 from pynovo.models.instanovo.instanovo_modeling.inference.interfaces import Decodable
 from pynovo.models.instanovo.instanovo_modeling.inference.interfaces import Decoder
 class PrecursorDimension(Enum):
@@ -475,6 +475,7 @@ class BeamSearchDecoder(Decoder):
                 decoding fails i.e. no sequence that fits the precursor mass
                 to within a tolerance is found.
         """
+        # import pdb; pdb.set_trace()
         with torch.no_grad():
             batch_size = spectra.shape[0]
             complete_items: list[list[ScoredSequence]] = [[] for _ in range(batch_size)]
@@ -503,7 +504,7 @@ class BeamSearchDecoder(Decoder):
                 mass_buffers=mass_buffers,
             )
 
-            for _ in range(max_length):
+            for _ in tqdm(range(max_length)):
                 if beam.is_empty():
                     break
 
@@ -525,6 +526,7 @@ class BeamSearchDecoder(Decoder):
                     mass_buffer=mass_buffers,
                     max_isotope=max_isotope,
                 )
+
                 for i, items in enumerate(complete_candidates):
                     complete_items[i].extend(items)
 
