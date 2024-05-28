@@ -2,22 +2,22 @@ import sys
 import os
 import yaml
 import pdb
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 sys.path.append("/jingbo/PyNovo/")
 
 from pynovo.models.instanovo.instanovo_runner import InstanovoRunner
 from pynovo.datasets import CustomDataset
 
 file_mapping = {
-    "train" : "sample_train.parquet",
-    "valid" : "insta.parquet",
+    "train" : "train.parquet",
+    "valid" : "valid.parquet",
 }
 
 def train():
     config_path = "/jingbo/PyNovo/pynovo/models/instanovo/instanovo_config.yaml"
     with open(config_path) as f_in:
         instanovo_config = yaml.safe_load(f_in)
-    dataset = CustomDataset("/jingbo/PyNovo/data", file_mapping)
+    dataset = CustomDataset("/usr/commondata/public/jingbo/nine_species/", file_mapping)
     data = dataset.load_data(transform = InstanovoRunner.preprocessing_pipeline())
     model = InstanovoRunner(instanovo_config)
     model.train(data.get_train(), data.get_valid()) 
@@ -30,5 +30,5 @@ def eval():
     data = dataset.load_data(transform = InstanovoRunner.preprocessing_pipeline())
     model.evaluate(data.get_valid(), model_path)
 
-eval()
-# train()
+# eval()
+train()

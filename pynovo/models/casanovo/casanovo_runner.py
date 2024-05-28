@@ -74,6 +74,7 @@ class CasanovoRunner:
         self,
         config: CasanovoConfig,
         model_filename: Optional[str] = None,
+        saved_path: str = "",
     ) -> None:
         
         
@@ -81,6 +82,7 @@ class CasanovoRunner:
         """Initialize a ModelRunner"""
         self.config = config
         self.model_filename = model_filename
+        self.saved_path = saved_path
 
         # Initialized later:
         self.tmp_dir = None
@@ -186,8 +188,7 @@ class CasanovoRunner:
         test_loader = CasanovoDataModule(
             df = test_df,
             n_workers=self.config.n_workers,
-            # batch_size=self.config.train_batch_size // self.trainer.num_devices
-            batch_size=self.config.predict_batch_size
+            batch_size=self.config.train_batch_size // self.trainer.num_devices if not self.config.calculate_precision else self.config.predict_batch_size
         ).get_dataloader()
         
         start_time = time.time()
@@ -354,7 +355,7 @@ class CasanovoRunner:
         device = torch.empty(1).device  # Use the default device.
         try:
             self.model = Spec2Pep.load_from_checkpoint(
-                self.model_filename, map_location=device, **loaded_model_params
+                self.model_filename, map_location=device, saved_path=self.saved_path, **loaded_model_params
             )
 
             architecture_params = set(model_params.keys()) - set(

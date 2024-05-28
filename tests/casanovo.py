@@ -1,5 +1,6 @@
 import sys
 import os
+import csv
 sys.path.append("/jingbo/PyNovo/")
 
 from pynovo.datasets import CustomDataset, NineSpeciesDataset
@@ -21,23 +22,31 @@ def train():
     model.train(data.get_train(), data.get_valid())
 
 
-def eval(data_dir, model_file):
+def eval(data_dir, model_file, saved_path):
     # dataset = CustomDataset("/usr/commondata/public/jingbo/nine_species/", file_mapping)
     # data = dataset.load_data(transform = CasanovoRunner.preprocessing_pipeline())
     # config = CasanovoConfig()
     # model = CasanovoRunner(config,"/usr/commondata/local_public/jingbo/casanovo/nine_species/epoch=19-step=300000.ckpt")
     # model.evaluate(data.get_valid())
+    if os.path.exists(saved_path):
+        base, extension = os.path.splitext(saved_path)
+        counter = 1
+        saved_path = f"{base}_{counter}{extension}"
+        while os.path.exists(saved_path):
+            counter += 1
+            saved_path = f"{base}_{counter}{extension}"
+        print(f"Saved file exist, use {saved_path} instead!")   
+    with open(saved_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['peptides_true', 'peptides_pred', 'peptides_score'])
+    
     file_mapping = {"valid" : "test.parquet",}
     dataset = CustomDataset(data_dir, file_mapping)
     data = dataset.load_data(transform = CasanovoRunner.preprocessing_pipeline())
     config = CasanovoConfig()
-    
-    # Change config
     config.calculate_precision = True
-    valid_data_len = data._data['valid']._df.shape[0]
-    config.predict_batch_size = valid_data_len
     
-    model = CasanovoRunner(config, model_file)
+    model = CasanovoRunner(config, model_file, saved_path)
     model.evaluate(data.get_valid())
 
 
@@ -57,8 +66,8 @@ if __name__ == "__main__":
     elif sys.argv[1] == "train":
         train()
     elif sys.argv[1] == "eval":
-        os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[4]
-        eval(sys.argv[2], sys.argv[3])
+        os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[5]
+        eval(sys.argv[2], sys.argv[3],sys.argv[4])
     elif sys.argv[1] == "predict":
         os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[5]
         predict(sys.argv[2], sys.argv[3], sys.argv[4])

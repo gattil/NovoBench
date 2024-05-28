@@ -224,18 +224,22 @@ def aa_match_batch(
         ptm_mask_2 = [1 if aa in ptm_list else 0 for aa in peptide2]
         n_ptm_1 += sum(ptm_mask_1)
         n_ptm_2 += sum(ptm_mask_2)
-
-        aa_matches_batch.append(    # List[aa_matches, pep_matches, ptm_matches_1, ptm_matches_2]
-            aa_match(
-                peptide1,
-                peptide2,
-                aa_dict,
-                ptm_list,
-                cum_mass_threshold,
-                ind_mass_threshold,
-                mode,
+        
+        if len(peptide2) == 0:
+            aa_matches_batch.append( (np.zeros(len(peptide1), np.bool_), False,
+                                    np.zeros(len(peptide1), np.bool_),np.zeros(len(peptide1), np.bool_)) )
+        else:
+            aa_matches_batch.append(    # List[aa_matches, pep_matches, ptm_matches_1, ptm_matches_2]
+                aa_match(
+                    peptide1,
+                    peptide2,
+                    aa_dict,
+                    ptm_list,
+                    cum_mass_threshold,
+                    ind_mass_threshold,
+                    mode,
+                )
             )
-        )
     return aa_matches_batch, n_aa1, n_aa2, n_ptm_1, n_ptm_2
 
 

@@ -1,6 +1,8 @@
 import polars as pl
 import os
 import torch
+import sys
+import numpy as np
 from torch import optim
 import torch.nn.functional as F
 import time
@@ -14,7 +16,7 @@ from pynovo.models.instanovo.instanovo_modeling.transformer.model import InstaNo
 logger = logging.getLogger('instanovo')
 
 def init_logger():
-    output = "/jingbo/PyNovo/instanovo.log"
+    output = "/jingbo/PyNovo/instanovo_nine.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -55,7 +57,7 @@ class InstanovoRunner(object):
     def __init__(
         self,
         config=None):
-        # init_logger()
+        init_logger()
         self.config = config
 
     def train(

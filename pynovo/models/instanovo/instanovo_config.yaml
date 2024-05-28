@@ -64,7 +64,6 @@ gradient_clip_val: 10.0
 predict_batch_size: 32
 n_beams: 5
 
-logger: '/jingbo/PyNovo/instanovo.log'
 epochs: 30
 num_sanity_val_steps: 0
 
@@ -73,10 +72,10 @@ num_sanity_val_steps: 0
 # Subsets for training and validation set
 train_subset: 1.0 # Used for debugging
 valid_subset: 0.02 # Speed up training
-val_check_interval: 40 # 1.0
+val_check_interval: 50000 # 1.0
 
 save_model: True
-model_save_folder_path: "/jingbo/PyNovo/pynovo/save_models/"
+model_save_folder_path: "/jingbo/PyNovo/pynovo/save_models/instanovo/instanovo_nine"
 save_weights_only: True
 # resume_checkpoint: ""
 

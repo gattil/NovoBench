@@ -7,6 +7,7 @@ import depthcharge
 import einops
 import torch
 import numpy as np
+import pandas as pd
 import lightning.pytorch as pl
 from torch.utils.tensorboard import SummaryWriter
 from depthcharge.components import ModelMixin, PeptideDecoder, SpectrumEncoder
@@ -185,6 +186,7 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         max_iters: int = 600_000,
         out_writer= None,
         calculate_precision: bool = False,
+        saved_path: str = "",
         s1: float = 0.1,
         s2: float = 0.1,
         **kwargs: Dict,
@@ -192,6 +194,7 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         super().__init__()
         self.save_hyperparameters()
 
+        self.saved_path = saved_path
         self.encoder = SpectrumEncoder(
             dim_model=dim_model,
             n_head=n_head,
@@ -917,37 +920,46 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         # Calculate and log amino acid and peptide match evaluation metrics from
         # the predicted peptides.
     
-        peptides_pred, peptides_true = [], batch[2]
+        peptides_pred, peptides_true, peptides_score = [], batch[2], []
         for spectrum_preds in self.forward(batch[0], batch[1]):
             if spectrum_preds == []:
                 peptides_pred.append("")
-            for _, _, pred in spectrum_preds:
+                peptides_score.append(float('-inf'))
+            for pep_score, _, pred in spectrum_preds:
                 peptides_pred.append(pred)
+                peptides_score.append(pep_score)
                 
-        assert(len(peptides_pred)==len(peptides_true))
+        assert(len(peptides_pred)==len(peptides_true) and len(peptides_score)==len(peptides_true))
 
-        metrics_dict = evaluate.aa_match_metrics(
-            *evaluate.aa_match_batch(
-                peptides_true,
-                peptides_pred,
-                self.decoder._peptide_mass.masses,
-            )
-        )#  aa_precision, aa_recall, pep_precision, ptm_recall, ptm_precision
+        # metrics_dict = evaluate.aa_match_metrics(
+        #     *evaluate.aa_match_batch(
+        #         peptides_true,
+        #         peptides_pred,
+        #         self.decoder._peptide_mass.masses,
+        #     )
+        # )#  aa_precision, aa_recall, pep_precision, ptm_recall, ptm_precision
 
         # calculate sc-matching score
         # metrics_dict['sc-matching score'] = evaluate.cal_score(peptides_pred, batch[0], batch[1])
-        
-        log_args = dict(on_step=False, on_epoch=True, sync_dist=True)
-        self.log(
-            "Peptide precision at coverage=1",
-            metrics_dict["pep_precision"],
-            **log_args,
-        )
-        self.log(
-            "AA precision at coverage=1",
-            metrics_dict["aa_precision"],
-            **log_args,
-        )
+
+        if not self.saved_path == "":
+            batch_df = pd.DataFrame({
+                'peptides_true': peptides_true,
+                'peptides_pred': peptides_pred,
+                'peptides_score': peptides_score
+            })
+            batch_df.to_csv(self.saved_path, mode='a', header=False, index=False)        
+        # log_args = dict(on_step=False, on_epoch=True, sync_dist=True)
+        # self.log(
+        #     "Peptide precision at coverage=1",
+        #     metrics_dict["pep_precision"],
+        #     **log_args,
+        # )
+        # self.log(
+        #     "AA precision at coverage=1",
+        #     metrics_dict["aa_precision"],
+        #     **log_args,
+        # )
         return loss
 
     def predict_step(
@@ -1019,16 +1031,39 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         }
 
         if self.calculate_precision:
-            metrics["valid_aa_precision"] = (
-                callback_metrics["AA precision at coverage=1"].detach().item()
+            header = "Step\tTrain loss\tValid loss\tPeptide precision\tAA precision\tAA recall\tPTM precision\tPTM recall\tCurve_AUC"
+            logger.info(header)
+
+            df = pd.read_csv(self.saved_path, na_values=['', ' '])
+            df = df.fillna('')
+            match_ret = evaluate.aa_match_batch(
+                    df['peptides_true'],
+                    df['peptides_pred'],
+                    self.residues,
             )
-            metrics["valid_pep_precision"] = (
-                callback_metrics["Peptide precision at coverage=1"]
-                .detach()
-                .item()
-            )
-        self._history.append(metrics)
-        self._log_history()
+            metrics_dict = evaluate.aa_match_metrics(
+                *match_ret, df['peptides_score']
+            )#  metrics_dict = {"aa_precision" : float,"aa_recall" : float,"pep_precision" : float,"ptm_recall" : float,"ptm_precision" : float,"curve_auc" : float}
+
+            df['pep_matches'] = [aa_matches[1] for aa_matches in match_ret[0]]
+            df.to_csv(self.saved_path, index=False)
+            
+            msg = "%i\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f"
+            vals = [
+                metrics["step"],
+                metrics.get("train", np.nan),
+                metrics.get("valid", np.nan),
+                metrics_dict['pep_precision'],
+                metrics_dict['aa_precision'],
+                metrics_dict['aa_recall'],
+                metrics_dict['ptm_precision'],
+                metrics_dict['ptm_recall'],
+                metrics_dict['curve_auc'],
+            ]
+            logger.info(msg, *vals)
+        else:
+            self._history.append(metrics)
+            self._log_history()
 
     def on_predict_batch_end(
         self,

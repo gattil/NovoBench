@@ -23,8 +23,8 @@ from pynovo.models.instanovo.instanovo_dataloader import InstanovoDataModule
 from pynovo.models.instanovo.instanovo_modeling.transformer.model import InstaNovo
 from pynovo.models.instanovo.instanovo_modeling.utils.metrics import Metrics
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('instanovo')
+# logger.setLevel(logging.INFO)
 
 
 class PTModule(ptl.LightningModule):
@@ -135,19 +135,20 @@ class PTModule(ptl.LightningModule):
         preds = preds[:, :-1, :].reshape(-1, self.model.decoder.vocab_size + 1)
         loss = self.loss_fn(preds, truth.flatten())
 
+        # TODO
         # Greedy decoding
-        with torch.no_grad():
-            # y, _ = decoder(spectra, precursors, spectra_mask)
-            p = self.decoder.decode(
-                spectra=spectra,
-                precursors=precursors,
-                beam_size=self.config["n_beams"],
-                max_length=self.config["max_length"],
-            )
+        # with torch.no_grad():
+        #     # y, _ = decoder(spectra, precursors, spectra_mask)
+        #     p = self.decoder.decode(
+        #         spectra=spectra,
+        #         precursors=precursors,
+        #         beam_size=self.config["n_beams"],
+        #         max_length=self.config["max_length"],
+        #     )
 
-        # targets = self.model.batch_idx_to_aa(peptides)
-        y = ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
-        targets = peptides
+        # # targets = self.model.batch_idx_to_aa(peptides)
+        # y = ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
+        # targets = peptides
         
         #TODO
         # aa_prec, aa_recall, pep_recall, _ = self.metrics.compute_precision_recall(targets, y)
@@ -165,7 +166,7 @@ class PTModule(ptl.LightningModule):
         """Log the training loss at the end of each epoch."""
         epoch = self.trainer.current_epoch
         # self.sw.add_scalar(f"eval/train_loss", self.running_loss, epoch)
-
+        logging.info(f"[Epoch {epoch:02d}] train_loss={self.running_loss:.5f}")
         self.running_loss = None
 
     def on_validation_epoch_end(self) -> None:
