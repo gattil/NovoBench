@@ -789,7 +789,6 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
                 peptides_score.append(pep_score)
         
         assert(len(peptides_pred)==len(peptides_true) and len(peptides_score)==len(peptides_true))
-        
         if not self.saved_path == "":
             batch_df = pd.DataFrame({
                 'peptides_true': peptides_true,

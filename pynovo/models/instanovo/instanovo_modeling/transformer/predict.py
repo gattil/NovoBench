@@ -42,7 +42,7 @@ def get_preds(
     i2s = {i: v for i, v in enumerate(vocab)}
 
 
-
+    config["predict_batch_size"] = 8
     dl = InstanovoDataModule(
         df = df,
         s2i = s2i,
@@ -50,7 +50,6 @@ def get_preds(
         batch_size = config["predict_batch_size"],
         n_workers = config["n_workers"]
     ).get_dataloader()
-
     model = model.to(device)
     model = model.eval()
 
@@ -73,12 +72,15 @@ def get_preds(
     probs = []
 
     start = time.time()
+    import csv
+    with open('./example.csv', mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['peptides_true','peptides_pred','peptides_score'])
     for _, batch in tqdm(enumerate(dl), total=len(dl)):
         spectra, precursors, spectra_mask, peptides, _ = batch
         spectra = spectra.to(device)
         precursors = precursors.to(device)
         spectra_mask = spectra_mask.to(device)
-        
 
         with torch.no_grad():
             p = decoder.decode(
@@ -88,10 +90,17 @@ def get_preds(
                 max_length=config["max_length"],
             )
 
-            preds += ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
-            probs += [x.log_probability if not isinstance(x, list) else -1 for x in p]
-            targs += list(peptides)
-    
+            preds = ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
+            probs = [np.exp(x.log_probability) if not isinstance(x, list) else -1 for x in p]
+            targs = list(peptides)
+        # import pdb; pdb.set_trace()
+        # 把结果preds,targets,probs添加到csv文件中
+        with open('./example.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            for i in range(len(preds)):
+                writer.writerow([targs[i],preds[i],,probs[i]])
+        
+
     delta = time.time() - start
 
     logging.info(f"Time taken  is {delta:.1f} seconds")

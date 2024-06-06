@@ -14,7 +14,7 @@ file_mapping = {
 }
 
 def train():
-    dataset = CustomDataset("/usr/commondata/public/jingbo/nine_species/", file_mapping)
+    dataset = CustomDataset("/usr/commondata/public/jingbo/seven_species/", file_mapping)
     data = dataset.load_data(transform=PointnovoRunner.preprocessing_pipeline())
     model = PointnovoRunner()
     model.train(data.get_train(), data.get_valid())

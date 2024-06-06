@@ -7,15 +7,15 @@ from pynovo.datasets import CustomDataset, NineSpeciesDataset
 from pynovo.models.casanovo import CasanovoRunner, CasanovoConfig
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 file_mapping = {
-    # "train" : "train.parquet",
-    "valid" : "test.parquet",
+    "train" : "sample_train.parquet",
+    "valid" : "sample_test.parquet",
 }
 
 def train():
-    dataset = CustomDataset("/usr/commondata/public/jingbo/seven_species/", file_mapping)
+    dataset = CustomDataset("/jingbo/PyNovo/data/", file_mapping)
     data = dataset.load_data(transform = CasanovoRunner.preprocessing_pipeline())
     config = CasanovoConfig()
     model = CasanovoRunner(config)
@@ -57,20 +57,20 @@ def predict(data_path, output_dir, model_file):
     model = CasanovoRunner(config,"/jingbo/PyNovo/pynovo/save_models/casanovo/epoch=99-step=1600.ckpt")
     model.predict(mgf_path,output_file)
 
-# train()
+train()
 # eval()
 
-if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        print("Need mode: train, eval or predict!")
-    elif sys.argv[1] == "train":
-        train()
-    elif sys.argv[1] == "eval":
-        os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[5]
-        eval(sys.argv[2], sys.argv[3],sys.argv[4])
-    elif sys.argv[1] == "predict":
-        os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[5]
-        predict(sys.argv[2], sys.argv[3], sys.argv[4])
-    else:
-        print("Error mode!")
+# if __name__ == "__main__":
+#     if len(sys.argv) == 1:
+#         print("Need mode: train, eval or predict!")
+#     elif sys.argv[1] == "train":
+#         train()
+#     elif sys.argv[1] == "eval":
+#         os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[5]
+#         eval(sys.argv[2], sys.argv[3],sys.argv[4])
+#     elif sys.argv[1] == "predict":
+#         os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[5]
+#         predict(sys.argv[2], sys.argv[3], sys.argv[4])
+#     else:
+#         print("Error mode!")
         

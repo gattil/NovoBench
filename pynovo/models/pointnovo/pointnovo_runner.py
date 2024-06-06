@@ -24,7 +24,7 @@ from pynovo.transforms.misc import Compose
 logger = logging.getLogger('pointnovo')
 
 def init_logger():
-    output = "/jingbo/PyNovo/pointnovo_nine.log"
+    output = "/jingbo/PyNovo/pointnovo_seven.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)

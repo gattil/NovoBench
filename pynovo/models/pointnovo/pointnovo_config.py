@@ -10,7 +10,7 @@ from itertools import combinations
 # ==============================================================================
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--train_dir", type=str, default="/jingbo/PyNovo/pynovo/save_models/pointnovo/nine_species/")
+parser.add_argument("--train_dir", type=str, default="/jingbo/PyNovo/pynovo/save_models/pointnovo/seven_species/")
 parser.add_argument("--beam_size", type=int, default="5")
 parser.add_argument("--train", dest="train", action="store_true")
 parser.add_argument("--search_denovo", dest="search_denovo", action="store_true")
@@ -261,7 +261,7 @@ print("batch_size ", batch_size)
 
 num_epoch = 30
 
-init_lr = 1e-3
+init_lr = 1e-4
 
 steps_per_validation = 3000  # 100 # 2 # 4 # 200
 print("steps_per_validation ", steps_per_validation)

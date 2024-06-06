@@ -383,36 +383,53 @@ class IonCNNDenovo(object):
 
     def search_denovo(self, model_wrapper: InferenceModelWrapper,
                       beam_search_reader: DeepNovoDenovoDataset,
-                      mode='eval'):
+                      mode='eval',
+                      predict_true=None,
+                      csv_path=None):
         logger.info("start beam search denovo")
         predicted_denovo_list = []
 
         test_set_iter = chunks(list(range(len(beam_search_reader))), n=deepnovo_config.batch_size)
         total_batch_num = int(len(beam_search_reader) / deepnovo_config.batch_size)
-        for index, feature_batch_index in enumerate(test_set_iter):
+        print(f"total_batch_num: {total_batch_num}")
+        from tqdm import tqdm
+        for index, feature_batch_index in tqdm(enumerate(test_set_iter)):
             feature_dp_batch = [beam_search_reader[i] for i in feature_batch_index]
             predicted_batch = self._search_denovo_batch(feature_dp_batch, model_wrapper)
             predicted_denovo_list += predicted_batch
-        predict_list = []
-        index = []
-        score = []
-        pos_score = []
-        exp_mz = []
-        cal_mz = []
-        charge = []
+        # predict_list = []
+        # index = []
+        # score = []
+        # pos_score = []
+        # exp_mz = []
+        # cal_mz = []
+        # charge = []
+        # import pdb; pdb.set_trace()
+        import csv
+        with open(csv_path, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['peptides_true','peptides_pred','peptides_score'])
         for predict_denovo in tqdm(predicted_denovo_list):
-            index.append(predict_denovo.dda_feature.feature_id)
-            predict_list.append(''.join([deepnovo_config.vocab_reverse_eval[aa_id] for
-                                           aa_id in predict_denovo.best_beam_search_sequence.sequence]))
-            score.append(predict_denovo.best_beam_search_sequence.score)
-            pos_score.append(','.join([str(score) for score in predict_denovo.best_beam_search_sequence.position_score]))
-            exp_mz.append(predict_denovo.dda_feature.mz)
-            cal_mz.append((deepnovo_config.mass_N_terminus
-                    + sum(deepnovo_config.mass_AA_eval[deepnovo_config.vocab_reverse_eval[idx]] for idx in predict_denovo.best_beam_search_sequence.sequence)
-                    + deepnovo_config.mass_C_terminus))
-            charge.append(predict_denovo.dda_feature.z)
+            index = predict_denovo.dda_feature.feature_id
+            # import pdb; pdb.set_trace()
+            predict = ''.join([deepnovo_config.vocab_reverse[aa_id] for
+                                           aa_id in predict_denovo.best_beam_search_sequence.sequence])
+            score = predict_denovo.best_beam_search_sequence.score
+            true =  predict_true[index]
+            with open(csv_path, mode='a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([true,predict,score])
 
-        if mode == 'eval':
-            return predict_list,index
-        else:
-            return list(zip(predict_list,index,score,charge,exp_mz,cal_mz,pos_score))
+            # pos_score.append(','.join([str(score) for score in predict_denovo.best_beam_search_sequence.position_score]))
+
+            # exp_mz.append(predict_denovo.dda_feature.mz)
+            # cal_mz.append((deepnovo_config.mass_N_terminus
+            #         + sum(deepnovo_config.mass_AA[deepnovo_config.vocab_reverse[idx]] for idx in predict_denovo.best_beam_search_sequence.sequence)
+            #         + deepnovo_config.mass_C_terminus))
+            # charge.append(predict_denovo.dda_feature.z)
+
+
+        # if mode == 'eval':
+        #     return predict_list,index
+        # else:
+        #     return list(zip(predict_list,index,score,charge,exp_mz,cal_mz,pos_score))

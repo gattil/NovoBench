@@ -23,7 +23,7 @@ from pynovo.transforms.misc import Compose
 logger = logging.getLogger('deepnovo')
 
 def init_logger():
-    output = "/jingbo/PyNovo/deepnovo_eval.log"
+    output = "/jingbo/PyNovo/deepnovov2_"+deepnovo_config.dataset+ ".log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -79,20 +79,21 @@ class DeepnovoRunner(object):
                                      beam_size=deepnovo_config.FLAGS.beam_size)
         forward_deepnovo, backward_deepnovo, spectrum_cnn = build_model(training=False,folder=folder)
         model_wrapper = InferenceModelWrapper(forward_deepnovo, backward_deepnovo, spectrum_cnn)
-        predict_pred, index = denovo_worker.search_denovo(model_wrapper, dataset,'eval')
-        predict_true = list(valid_df.modified_sequence)
-        predict_true = list(np.array(predict_true)[np.array(index)])
-        print(predict_pred)
-        print(predict_true)
-        assert(len(predict_pred)==len(predict_true))
-        metrics_dict = evaluate.aa_match_metrics(
-            *evaluate.aa_match_batch(
-                predict_true,
-                predict_pred,
-                dict(list(deepnovo_config.mass_AA_eval.items())[3:])
-            )
-        )
-        print(metrics_dict)
+        denovo_worker.search_denovo(model_wrapper, dataset,'eval',list(valid_df.modified_sequence),'./e.csv')
+        # predict_pred, index = denovo_worker.search_denovo(model_wrapper, dataset,'eval',list(valid_df.modified_sequence))
+        # predict_true = list(valid_df.modified_sequence)
+        # predict_true = list(np.array(predict_true)[np.array(index)])
+        # print(predict_pred)
+        # print(predict_true)
+        # assert(len(predict_pred)==len(predict_true))
+        # metrics_dict = evaluate.aa_match_metrics(
+        #     *evaluate.aa_match_batch(
+        #         predict_true,
+        #         predict_pred,
+        #         dict(list(deepnovo_config.mass_AA_eval.items())[3:])
+        #     )
+        # )
+        # print(metrics_dict)
     
     def predict(
         self,
