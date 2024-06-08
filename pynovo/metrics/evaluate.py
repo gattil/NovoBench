@@ -4,7 +4,34 @@ from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 from spectrum_utils.utils import mass_diff
-from sklearn.metrics import auc
+from pyteomics import proforma, mass, mgf
+ALL_IONS_TYPES = ('b','b-NH3','b-H2O','y','y-NH3','y-H2O')
+ERROR = 0.5
+MAX_CHARGE = 1
+STD_AA_MASS = {
+    'G': 57.02146372057,
+    'A': 71.03711378471,
+    'S': 87.03202840427001,
+    'P': 97.05276384885,
+    'V': 99.06841391299,
+    'T': 101.04767846841,
+    'C': 103.00918478471,
+    'L': 113.08406397713001,
+    'I': 113.08406397713001,
+    'J': 113.08406397713001,
+    'N': 114.04292744114001,
+    'D': 115.02694302383001,
+    'Q': 128.05857750527997,
+    'K': 128.09496301399997,
+    'E': 129.04259308796998,
+    'M': 131.04048491299,
+    'H': 137.05891185845002,
+    'F': 147.06841391298997,
+    'U': 150.95363508471,
+    'R': 156.10111102359997,
+    'Y': 163.06332853254997,
+    'W': 186.07931294985997,
+    'O': 237.14772686284996}
 
 def split_peptide(peptide, aa_dict):
     aa_list = aa_dict.keys()
@@ -176,8 +203,6 @@ def aa_match_batch(
         The second list of peptide sequences to be compared.
     aa_dict : Dict[str, float]
         Mapping of amino acid tokens to their mass values.
-    ptm_list : List[str]
-        All the post-translational modification considered in validation.
     cum_mass_threshold : float
         Mass threshold in Dalton to accept cumulative mass-matching amino acid
         sequences.
@@ -191,26 +216,15 @@ def aa_match_batch(
     aa_matches_batch : List[Tuple[np.ndarray, bool]]
         For each pair of peptide sequences: (i) boolean flags indicating whether
         each paired-up amino acid matches across both peptide sequences, (ii)
-        boolean flag to indicate whether the two peptide sequences fully match, 
-        (iii) boolean flags indicating whether each ground truth amino acid with 
-        ptm matches across both peptide sequences, (iv) boolean flags indicating 
-        whether each predicted amino acid with ptm matches across both peptide 
-        sequences,
+        boolean flag to indicate whether the two peptide sequences fully match.
     n_aa1: int
         Total number of amino acids in the first list of peptide sequences.
     n_aa2: int
         Total number of amino acids in the second list of peptide sequences.
-    n_ptm_1: int
-        Total number of amino acids with post-translational modification in ground truth peptide sequences.
-    n_ptm_2: int
-        Total number of amino acids with post-translational modification in predicted peptide sequences.
     """
     aa_matches_batch, n_aa1, n_aa2 = [], 0, 0
     n_ptm_1, n_ptm_2 = 0, 0
-    
-    for ptm in ptm_list:
-        if ptm not in aa_dict.keys():
-            raise ValueError(f"PTM type {ptm} is not in aa_dict: {aa_dict.keys()}!")
+    length_list = [len(split_peptide(peptide, aa_dict)) for peptide in peptides1]
     
     for peptide1, peptide2 in zip(peptides1, peptides2):
         # Split peptides into individual AAs if necessary.
@@ -224,24 +238,46 @@ def aa_match_batch(
         ptm_mask_2 = [1 if aa in ptm_list else 0 for aa in peptide2]
         n_ptm_1 += sum(ptm_mask_1)
         n_ptm_2 += sum(ptm_mask_2)
-        
-        if len(peptide2) == 0:
-            aa_matches_batch.append( (np.zeros(len(peptide1), np.bool_), False,
-                                    np.zeros(len(peptide1), np.bool_),np.zeros(len(peptide1), np.bool_)) )
-        else:
-            aa_matches_batch.append(    # List[aa_matches, pep_matches, ptm_matches_1, ptm_matches_2]
-                aa_match(
-                    peptide1,
-                    peptide2,
-                    aa_dict,
-                    ptm_list,
-                    cum_mass_threshold,
-                    ind_mass_threshold,
-                    mode,
-                )
-            )
-    return aa_matches_batch, n_aa1, n_aa2, n_ptm_1, n_ptm_2
 
+        aa_matches_batch.append(    # List[aa_matches, pep_matches, ptm_matches_1, ptm_matches_2]
+            aa_match(
+                peptide1,
+                peptide2,
+                aa_dict,
+                ptm_list,
+                cum_mass_threshold,
+                ind_mass_threshold,
+                mode,
+            )
+        )
+    return aa_matches_batch, n_aa1, n_aa2, n_ptm_1, n_ptm_2, length_list
+
+def prec_by_length(pep_match_bool_list, length_list):
+    
+    correct_counts = {}
+    total_counts = {}
+
+    # 统计每种长度的正确匹配数和总数
+    for is_correct, length in zip(pep_match_bool_list, length_list):
+        if length in total_counts:
+            total_counts[length] += 1
+        else:
+            total_counts[length] = 1
+
+        if is_correct:
+            if length in correct_counts:
+                correct_counts[length] += 1
+            else:
+                correct_counts[length] = 1
+
+    # 计算准确率
+    accuracy_dict = {}
+    for length in total_counts:
+        # 如果某个长度没有正确匹配的记录，则准确率为0
+        correct_count = correct_counts.get(length, 0)
+        accuracy_dict[length] = correct_count / total_counts[length]
+
+    return accuracy_dict
 
 def aa_match_metrics(
     aa_matches_batch: List[Tuple[np.ndarray, bool]],
@@ -249,7 +285,7 @@ def aa_match_metrics(
     n_aa_pred: int,
     n_ptm_true: int,
     n_ptm_pred: int,
-    scores: List[float],
+    length_list: List[int],
 ) -> Tuple[float, float, float]:
     """
     Calculate amino acid and peptide-level evaluation metrics.
@@ -259,23 +295,11 @@ def aa_match_metrics(
     aa_matches_batch : List[Tuple[np.ndarray, bool]]
         For each pair of peptide sequences: (i) boolean flags indicating whether
         each paired-up amino acid matches across both peptide sequences, (ii)
-        boolean flag to indicate whether the two peptide sequences fully match, 
-        (iii) boolean flags indicating whether each ground truth amino acid with 
-        ptm matches across both peptide sequences, (iv) boolean flags indicating 
-        whether each predicted amino acid with ptm matches across both peptide 
-        sequences,
+        boolean flag to indicate whether the two peptide sequences fully match.
     n_aa_true: int
-        Total number of amino acids in the first list of peptide sequences.
+        Total number of amino acids in the true peptide sequences.
     n_aa_pred: int
-        Total number of amino acids in the second list of peptide sequences.
-    n_ptm_true: int
-        Total number of amino acids with post-translational modification in ground 
-        truth peptide sequences.
-    n_ptm_pred: int
-        Total number of amino acids with post-translational modification in predicted 
-        peptide sequences.
-    scores: List [float]
-        Confidence scores for every peptide predictions.
+        Total number of amino acids in the predicted peptide sequences.
 
     Returns
     -------
@@ -287,12 +311,6 @@ def aa_match_metrics(
     pep_precision: float
         The number of correct peptide predictions divided by the number of
         peptides.
-    ptm_recall: float
-        The number of correct AA with ptm predictions divided by the number of true AAs.
-    ptm_precision: float
-        The number of correct AA with ptm predictions divided by the number of predicted AAs.
-    curve_auc: float
-        Calculate area under curve of precision-recall(AUC).
     """
     # aa_matches_batch: List[aa_matches, pep_matches, ptm_matches_1, ptm_matches_2]
     n_aa_correct = sum(
@@ -307,30 +325,10 @@ def aa_match_metrics(
     ptm_recall = sum([aa_matches[2].sum() for aa_matches in aa_matches_batch]) / (n_ptm_true + 1e-8)
     ptm_precision = sum([aa_matches[3].sum() for aa_matches in aa_matches_batch]) / (n_ptm_pred + 1e-8)
 
-    # calculate precision-length relations 
-    # pep_match_bool_list = [aa_matches[1] for aa_matches in aa_matches_batch]
-    # prec_by_len = prec_by_length(pep_match_bool_list, length_list)  # Dict[int, float]
-    
-    # Calculate area under curve of precision-recall(AUC).
     pep_match_bool_list = [aa_matches[1] for aa_matches in aa_matches_batch]
-    assert len(scores)==len(pep_match_bool_list)
-    combined = list(zip(scores, pep_match_bool_list))
-    sorted_combined = sorted(combined, key=lambda x: x[0], reverse=True)
-    sorted_pred_bools = [pred for _, pred in sorted_combined]
+    prec_by_len = prec_by_length(pep_match_bool_list, length_list)  # Dict[int, float]
     
-    precision = np.cumsum(sorted_pred_bools) / np.arange(1, len(sorted_pred_bools) + 1)
-    recall = np.cumsum(sorted_pred_bools) / len(sorted_pred_bools)
-    curve_auc = auc(recall, precision)
-    
-    metrics_dict = {
-        "aa_precision" : aa_precision,
-        "aa_recall" : aa_recall,
-        "pep_precision" : pep_precision,
-        "ptm_recall" : ptm_recall,
-        "ptm_precision" : ptm_precision,
-        "curve_auc" : curve_auc,
-    }
-    return metrics_dict
+    return aa_precision, aa_recall, pep_precision, ptm_recall, ptm_precision
 
 
 def aa_precision_recall(
@@ -366,55 +364,110 @@ def aa_precision_recall(
     n_aa_predicted = sum([score > threshold for score in aa_scores_all])
     return n_aa_correct / n_aa_predicted, n_aa_correct / n_aa_total
 
-# # (AUC-ROC) Calculate area under curve of precision-recall.
-# def calc_auc(pred_file, aa_dict):
-#     # `psm_sequences` is assumed to be a DataFrame with at least the following
-#     # three columns:
-#     #   - "sequence": The ground-truth peptide labels.
-#     #   - "sequence_pred": The predicted peptide labels.
-#     #   - "score": The prediction scores.
-#     psm_sequences = pd.read_csv(pred_file)  # TODO: Get the PSM information.
+# (AUC-ROC) Calculate area under curve of precision-recall.
+def calc_auc(pred_file, model_name, png_name, aa_dict):
+    # `psm_sequences` is assumed to be a DataFrame with at least the following
+    # three columns:
+    #   - "sequence": The ground-truth peptide labels.
+    #   - "sequence_pred": The predicted peptide labels.
+    #   - "score": The prediction scores.
+    psm_sequences = pd.read_csv(pred_file)  # TODO: Get the PSM information.
 
-#     # Sort the PSMs by descreasing prediction score.
-#     psm_sequences = psm_sequences.sort_values(
-#         "score", ascending=False
-#     )
-#     # Find matches between the true and predicted peptide sequences.
-#     aa_matches_batch = aa_match_batch(
-#         psm_sequences["sequence"],
-#         psm_sequences["sequence_pred"],
-#         aa_dict,
-#         ptm_list,
-#     ) 
-#     # aa_matches_batch[0]: List[aa_matches, aa_matches.all(), ptm_matches_1, ptm_matches_2]
+    # Sort the PSMs by descreasing prediction score.
+    psm_sequences = psm_sequences.sort_values(
+        "score", ascending=False
+    )
+    # Find matches between the true and predicted peptide sequences.
+    aa_matches_batch = aa_match_batch(
+        psm_sequences["sequence"],
+        psm_sequences["sequence_pred"],
+        aa_dict,
+    ) 
+    # aa_matches_batch[0]: List[aa_matches, aa_matches.all(), ptm_matches_1, ptm_matches_2]
 
-#     # Calculate the peptide precision and coverage.
-#     peptide_matches_bool = np.asarray([aa_match[1] for aa_match in aa_matches_batch[0]])
-#     precision = np.cumsum(peptide_matches_bool) / np.arange(1, len(peptide_matches_bool) + 1)
-#     recall = np.cumsum(peptide_matches_bool) / len(peptide_matches_bool)
+    # Calculate the peptide precision and coverage.
+    peptide_matches_bool = np.asarray([aa_match[1] for aa_match in aa_matches_batch[0]])
+    precision = np.cumsum(peptide_matches_bool) / np.arange(1, len(peptide_matches_bool) + 1)
+    recall = np.cumsum(peptide_matches_bool) / len(peptide_matches_bool)
 
-#     # Some results
-#     # print(f"Peptide precision @ coverage=1 = {precision[-1]:.6f}")
-#     # print(f"Peptide recall    @ coverage=1 = {recall[-1]:.6f}")
+    # Some results
+    # print(f"Peptide precision @ coverage=1 = {precision[-1]:.6f}")
+    # print(f"Peptide recall    @ coverage=1 = {recall[-1]:.6f}")
 
-#     # Plot the precision–coverage curve.
-#     # width = 4
-#     # height = width / 1.618
-#     # fig, ax = plt.subplots(figsize=(width, width))
+    # Plot the precision–coverage curve.
+    # width = 4
+    # height = width / 1.618
+    # fig, ax = plt.subplots(figsize=(width, width))
 
-#     # ax.plot(
-#     #     recall, precision, label=f"{model_name} AUC = {auc(recall, precision):.3f}"
-#     # )
+    # ax.plot(
+    #     recall, precision, label=f"{model_name} AUC = {auc(recall, precision):.3f}"
+    # )
 
-#     # ax.set_xlim(0, 1)
-#     # ax.set_ylim(0.30, 1)
+    # ax.set_xlim(0, 1)
+    # ax.set_ylim(0.30, 1)
 
-#     # ax.set_xlabel("Recall")
-#     # ax.set_ylabel("Precision")
-#     # ax.legend(loc="lower left")
+    # ax.set_xlabel("Recall")
+    # ax.set_ylabel("Precision")
+    # ax.legend(loc="lower left")
 
-#     # plt.savefig(f"/chenshaorong/pynovo/{png_name}.png", dpi=300, bbox_inches="tight")
-#     # plt.savefig(f"/chenshaorong/pynovo/{png_name}.pdf", dpi=300, bbox_inches="tight")
-#     # plt.close()
+    # plt.savefig(f"/chenshaorong/pynovo/{png_name}.png", dpi=300, bbox_inches="tight")
+    # plt.savefig(f"/chenshaorong/pynovo/{png_name}.pdf", dpi=300, bbox_inches="tight")
+    # plt.close()
     
-#     return auc(recall, precision)
+    return auc(recall, precision)
+
+
+def fragments(peptide, types=ALL_IONS_TYPES, maxcharge=MAX_CHARGE, aa_mass_list=STD_AA_MASS):
+    """
+    The function generates all possible m/z for fragments of types
+    `types` and of charges from 1 to `maxcharge`.
+    """
+    all_mz = []
+    for i in range(1, len(peptide)):
+        site_mz = []
+        for ion_type in types:
+            for charge in range(1, maxcharge+1):
+                if ion_type[0] in 'abc':
+                    site_mz.append( mass.fast_mass(peptide[:i], ion_type=ion_type, charge=charge, aa_mass = aa_mass_list) )
+                else:
+                    site_mz.append( mass.fast_mass(peptide[i:], ion_type=ion_type, charge=charge, aa_mass = aa_mass_list) )
+        all_mz.append(site_mz)
+                    
+    return np.array(all_mz)
+
+
+def calc_missing_ratio(peptide:List[str], spectra_mz_list:List[float], aa_mass_list:Dict[str,float]=STD_AA_MASS ):
+    fragment_list = fragments(peptide, aa_mass_list=aa_mass_list)  # [cleave site num * (ion_type * charge_type)]
+    missing_num = 0
+    
+    for theory_mz_list in fragment_list:    # theory_mz_list [(ion_type * charge_type)]
+        match_bool = False
+        for theory_mz in theory_mz_list:
+            if any(abs(spectra_mz - theory_mz) <= ERROR for spectra_mz in spectra_mz_list):
+                match_bool = True
+                break;
+            else:
+                continue;
+        if not match_bool:
+            # print(f"Missing! theory_mz_list: {theory_mz_list}")
+            missing_num += 1
+    
+    # print(f"Theory peak: {len(fragment_list)}, Missing peak: {missing_num}")
+    return missing_num/len(fragment_list)
+
+def calc_noise_signal_ratio(peptide:List[str], spectra_mz_list:List[float], aa_mass_list:Dict[str,float]=STD_AA_MASS ):
+    theory_mz_list_1 = fragments(peptide, aa_mass_list=aa_mass_list)  # [cleave site num , (ion_type * charge_type)]
+    theory_mz_list = [item for sublist in theory_mz_list_1 for item in sublist]
+    print(f"theory_mz_list_1 shape {theory_mz_list_1.shape}, theory_mz_list shape {len(theory_mz_list)}")
+    
+    bool_matrix = []
+    for theory_mz in theory_mz_list:    # theory_mz_list [(ion_type * charge_type)]
+        bool_mask = np.isclose(np.array(spectra_mz_list), theory_mz, atol=ERROR)
+        bool_matrix.append(bool_mask)
+    
+    bool_matrix = np.array(bool_matrix)        
+    signal_peak_bool = np.any(bool_matrix, axis=0)
+    signal_peak_num = np.sum(signal_peak_bool)
+    print(f"signal_peak_num: {signal_peak_num}")
+    
+    return (signal_peak_bool.shape[0]-signal_peak_num) / signal_peak_num
