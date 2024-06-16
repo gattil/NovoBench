@@ -15,8 +15,15 @@ conda env create -f novobench.yaml
 conda activate novobench
 ```
 
-## Train
+## Train a new  model 
 To train a model from scratch, run:
 ```shell
-python tests/casanovo.py --data_path parquet_path --model_path ckpt_path 
+python tests/casanovo.py --mode train --data_path parquet_path --model_path ckpt_path 
+```
+
+
+## Sequence mass spectra
+To sequence the mass spectra with NovoBench, use the following command:
+```shell
+python tests/casanovo.py --mode seq --data_path parquet_path --model_path ckpt_path --output_path csv_path
 ```
