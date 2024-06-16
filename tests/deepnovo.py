@@ -1,7 +1,7 @@
 import sys
 import os
 
-sys.path.append("/jingbo/PyNovo")
+sys.path.append("/path/to/PyNovo/")
 from pynovo.models.deepnovo.deepnovo_dataloader  import  DeepNovoTrainDataset
 from pynovo.datasets import CustomDataset, NineSpeciesDataset
 from pynovo.models.deepnovo.deepnovo_runner import DeepnovoRunner

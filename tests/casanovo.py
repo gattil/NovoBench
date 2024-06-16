@@ -4,7 +4,7 @@ import csv
 sys.path.append("/path/to/PyNovo/")
 
 from pynovo.datasets import CustomDataset, NineSpeciesDataset
-from pynovo.models.instanovo import CasanovoRunner, CasanovoConfig
+from pynovo.models.casanovo import CasanovoRunner, CasanovoConfig
 
 
 file_mapping = {

@@ -14,7 +14,7 @@ import psutil
 import pytorch_lightning as pl
 import torch
 import yaml
-sys.path.append("/jingbo/PyNovo/")
+sys.path.append("/path/to/PyNovo/")
 import torch
 from pynovo.models.contranovo.contranovo_modeling import utils
 from pynovo.models.contranovo.contranovo_runner import ContranovoRunner

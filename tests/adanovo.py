@@ -1,7 +1,7 @@
 import sys
 import os
 import csv
-sys.path.append("/jingbo/PyNovo/")
+sys.path.append("/path/to/PyNovo/")
 
 from pynovo.datasets import CustomDataset, NineSpeciesDataset
 from pynovo.models.adanovo import AdanovoRunner, AdanovoConfig

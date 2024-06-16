@@ -1,7 +1,7 @@
 import sys
 import os
 
-sys.path.append("/jingbo/PyNovo")
+sys.path.append("/path/to/PyNovo/")
 from pynovo.datasets import CustomDataset, NineSpeciesDataset
 from pynovo.models.pointnovo.pointnovo_runner import PointnovoRunner
 
