@@ -16,3 +16,7 @@ conda activate novobench
 ```
 
 ## Train
+To train a model from scratch, run:
+```shell
+python tests/casanovo.py --data_path parquet_path --model_path ckpt_path 
+```
