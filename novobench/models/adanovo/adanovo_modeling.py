@@ -12,7 +12,7 @@ import lightning.pytorch as pl
 from torch.utils.tensorboard import SummaryWriter
 from depthcharge.components import ModelMixin, PeptideDecoder, SpectrumEncoder
 
-from pynovo.metrics import evaluate
+from novobench.metrics import evaluate
 
 # from ..data import ms_io
 

@@ -20,19 +20,19 @@ import time
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-from .casanovo_config import CasanovoConfig
-from pynovo.data import ms_io
-from .casanovo_dataloader import CasanovoDataset, CasanovoDataModule
-from .casanovo_modeling import Spec2Pep
+from .instanovo_config import InstanovoConfig
+from novobench.data import ms_io
+from .instanovo_dataloader import InstanovoDataset, InstanovoDataModule
+from .instanovo_modeling import Spec2Pep
 
-from pynovo.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
-from pynovo.transforms.misc import Compose
-from pynovo.utils.preprocessing import convert_mgf_ipc
-from pynovo.data import SpectrumData
-logger = logging.getLogger("casanovo")
+from novobench.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
+from novobench.transforms.misc import Compose
+from novobench.utils.preprocessing import convert_mgf_ipc
+from novobench.data import SpectrumData
+logger = logging.getLogger("instanovo")
 
 def init_logger():
-    output = "/jingbo/PyNovo/casanovo_seven.log"
+    output = "/PyNovo/instanovo_seven.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -58,13 +58,13 @@ def init_logger():
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     
 
-class CasanovoRunner:
-    """A class to run Casanovo models.
+class InstanovoRunner:
+    """A class to run Instanovo models.
 
     Parameters
     ----------
     config : Config object
-        The casanovo configuration.
+        The instanovo configuration.
     model_filename : str, optional
         The model filename is required for eval and de novo modes,
         but not for training a model from scratch.
@@ -72,7 +72,7 @@ class CasanovoRunner:
 
     def __init__(
         self,
-        config: CasanovoConfig,
+        config: InstanovoConfig,
         model_filename: Optional[str] = None,
         saved_path: str = "",
     ) -> None:
@@ -134,7 +134,7 @@ class CasanovoRunner:
         train_df: pl.DataFrame,
         val_df: pl.DataFrame,
     ) -> None:
-        """Train the Casanovo model.
+        """Train the Instanovo model.
 
         Parameters
         ----------
@@ -150,13 +150,13 @@ class CasanovoRunner:
         self.initialize_trainer(train=True)
         self.initialize_model(train=True)
         
-        train_loader = CasanovoDataModule(
+        train_loader = InstanovoDataModule(
             df = train_df,
             n_workers=self.config.n_workers,
             batch_size=self.config.train_batch_size // self.trainer.num_devices
         ).get_dataloader(shuffle=True)
         
-        val_loader = CasanovoDataModule(
+        val_loader = InstanovoDataModule(
             df = val_df,
             n_workers=self.config.n_workers,
             batch_size=self.config.train_batch_size // self.trainer.num_devices
@@ -172,7 +172,7 @@ class CasanovoRunner:
         logger.info(f"Training took {training_time:.2f} seconds")
 
     def evaluate(self, test_df: pl.DataFrame,) -> None:
-        """Evaluate peptide sequence preditions from a trained Casanovo model.
+        """Evaluate peptide sequence preditions from a trained Instanovo model.
 
         Parameters
         ----------
@@ -185,7 +185,7 @@ class CasanovoRunner:
         """
         self.initialize_trainer(train=False)
         self.initialize_model(train=False)
-        test_loader = CasanovoDataModule(
+        test_loader = InstanovoDataModule(
             df = test_df,
             n_workers=self.config.n_workers,
             batch_size=self.config.train_batch_size // self.trainer.num_devices if not self.config.calculate_precision else self.config.predict_batch_size
@@ -197,7 +197,7 @@ class CasanovoRunner:
         logger.info(f"Evaluating took {training_time:.2f} seconds")
 
     def predict(self, peak_path: Iterable[str], output: str) -> None:
-        """Predict peptide sequences with a trained Casanovo model.
+        """Predict peptide sequences with a trained Instanovo model.
 
         Parameters
         ----------
@@ -235,7 +235,7 @@ class CasanovoRunner:
 
         # test_df = test_df.sample(100)
         # test loader
-        test_loader = CasanovoDataModule(
+        test_loader = InstanovoDataModule(
             df = SpectrumData(test_df),
             n_workers=self.config.n_workers,
             batch_size=self.config.train_batch_size // self.trainer.num_devices
@@ -279,7 +279,7 @@ class CasanovoRunner:
         self.trainer = pln.Trainer(**trainer_cfg)
 
     def initialize_model(self, train: bool) -> None:
-        """Initialize the Casanovo model.
+        """Initialize the Instanovo model.
 
         Parameters
         ----------
@@ -380,7 +380,7 @@ class CasanovoRunner:
             except RuntimeError:
                 raise RuntimeError(
                     "Weights file incompatible with the current version of "
-                    "Casanovo. "
+                    "Instanovo. "
                 )
 
 

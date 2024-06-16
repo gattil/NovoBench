@@ -9,7 +9,7 @@ import re
 
 PROTON_MASS_AMU = 1.007276466812  # Adjust as needed
 
-class CasanovoDataset(Dataset):
+class InstanovoDataset(Dataset):
     """A Dataset to handle spectrum data stored in a Polars DataFrame."""
 
     def __init__(self, data: SpectrumData):
@@ -43,7 +43,7 @@ class CasanovoDataset(Dataset):
         return spectrum, precursor_mz, precursor_charge, peptide
 
 
-class CasanovoDataModule:
+class InstanovoDataModule:
     """
     A simplified data loader for the de novo sequencing task.
 
@@ -66,7 +66,7 @@ class CasanovoDataModule:
         self.dataframe = df
         self.batch_size = batch_size
         self.n_workers = n_workers
-        self.dataset = CasanovoDataset(df)
+        self.dataset = InstanovoDataset(df)
 
     def get_dataloader(self,shuffle=False) -> DataLoader:
         """

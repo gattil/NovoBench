@@ -6,7 +6,7 @@ from .. import pointnovo_config as config
 from typing import List
 import numpy as np
 from dataclasses import dataclass
-from pynovo.models.pointnovo.pointnovo_modeling import Direction, InferenceModelWrapper, device, torch_get_ion_index
+from novobench.models.pointnovo.pointnovo_modeling import Direction, InferenceModelWrapper, device, torch_get_ion_index
 from ..pointnovo_dataloader import BatchDenovoData, DDAFeature
 from tqdm import tqdm
 

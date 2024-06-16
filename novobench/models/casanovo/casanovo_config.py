@@ -45,7 +45,6 @@ class CasanovoConfig:
         max_epochs: int = 30,
         num_sanity_val_steps: int = 0,
         save_top_k: int = 5,
-        # model_save_folder_path: str = "/usr/commondata/local_public/jingbo/casanovo/seven_species_shuffle/",
         model_save_folder_path: str = "./",
         val_check_interval: int = 20,
         calculate_precision: bool = True,

@@ -3,8 +3,8 @@ import pathlib
 import polars as pl
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
-from pynovo.transforms import BaseTransform
-from pynovo.data import SpectrumData, SpectrumDataManager
+from novobench.transforms import BaseTransform
+from novobench.data import SpectrumData, SpectrumDataManager
 
 class BaseDataset(ABC):
     """

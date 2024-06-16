@@ -3,7 +3,7 @@ from typing import Dict, Tuple, Optional
 
 logger = logging.getLogger("casanovo")
 
-class CasanovoConfig:
+class InstanovoConfig:
     """
     configuration class for Casanovo.
 
@@ -50,7 +50,7 @@ class CasanovoConfig:
         max_epochs: int = 30,
         num_sanity_val_steps: int = 0,
         save_top_k: int = 5,
-        model_save_folder_path: str = "/jingbo/PyNovo/pynovo/save_models/",
+        model_save_folder_path: str = "/PyNovo/pynovo/save_models/",
         val_check_interval: int = 10_000,
         calculate_precision: bool = False,
         n_workers: int = 64,

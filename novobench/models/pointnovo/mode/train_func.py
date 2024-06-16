@@ -2,8 +2,8 @@ import os
 import torch
 from torch import optim
 import torch.nn.functional as F
-from pynovo.models.pointnovo import pointnovo_config as config
-from pynovo.models.pointnovo.pointnovo_modeling import DeepNovoModel, device, InitNet
+from novobench.models.pointnovo import pointnovo_config as config
+from novobench.models.pointnovo.pointnovo_modeling import DeepNovoModel, device, InitNet
 import time
 import math
 import logging

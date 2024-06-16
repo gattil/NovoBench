@@ -22,10 +22,10 @@ import lightning.pytorch as pl
 from torch.utils.tensorboard import SummaryWriter
 from depthcharge.components import ModelMixin, PeptideDecoder, SpectrumEncoder
 from depthcharge import utils 
-from pynovo.metrics import evaluate
+from novobench.metrics import evaluate
 import pandas as pd
 
-logger = logging.getLogger("casanovo")
+logger = logging.getLogger("instanovo")
 
 
 def generate_tgt_mask(sz):

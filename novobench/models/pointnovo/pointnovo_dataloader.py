@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from . import pointnovo_config as config
 import sys
 import numpy as np
-from pynovo.data import SpectrumData
+from novobench.data import SpectrumData
 from torch.utils.data import Dataset, DataLoader
 
 

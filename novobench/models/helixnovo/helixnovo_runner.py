@@ -8,9 +8,9 @@ import torch.nn.functional as F
 import time
 import math
 import logging
-from pynovo.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
-from pynovo.transforms.misc import Compose
-from pynovo.models.helixnovo.helixnovo_modeling.denovo.model_runner import train, evaluate
+from novobench.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
+from novobench.transforms.misc import Compose
+from novobench.models.helixnovo.helixnovo_modeling.denovo.model_runner import train, evaluate
 
 
 def init_logger():

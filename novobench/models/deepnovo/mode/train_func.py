@@ -4,8 +4,8 @@ from torch import optim
 import torch.nn.functional as F
 import sys
 sys.path.append("/jingbo/PyNovo/")
-from pynovo.models.deepnovo.deepnovo_modeling import DeepNovoModel, SpectrumCNN, device
-from pynovo.models.deepnovo import deepnovo_config
+from novobench.models.deepnovo.deepnovo_modeling import DeepNovoModel, SpectrumCNN, device
+from novobench.models.deepnovo import deepnovo_config
 import time
 import math
 import logging

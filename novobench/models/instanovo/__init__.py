@@ -1,3 +1,3 @@
-from .casanovo_config import CasanovoConfig
-from .casanovo_dataloader import CasanovoDataModule
-from .casanovo_runner import CasanovoRunner
+from .instanovo_config import InstanovoConfig
+from .instanovo_dataloader import InstanovoDataModule
+from .instanovo_runner import InstanovoRunner

@@ -385,7 +385,7 @@ dataset = 'nine_species'
 
 # Check
 tf.app.flags.DEFINE_string("train_dir", # flag_name
-                           '/jingbo/PyNovo/pynovo/save_models/deepnovo/'+dataset, # default_value
+                           '/PyNovo/pynovo/save_models/deepnovo/'+dataset, # default_value
                            "Training directory.") # docstring
 
 tf.app.flags.DEFINE_integer("direction",

@@ -12,7 +12,7 @@ import sys
 import logging
 from dataclasses import dataclass
 from . import deepnovo_config
-from pynovo.data import SpectrumData
+from novobench.data import SpectrumData
 from torch.utils.data import Dataset, DataLoader
 
 

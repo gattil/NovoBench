@@ -21,18 +21,18 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 from .adanovo_config import AdanovoConfig
-from pynovo.data import ms_io
+from novobench.data import ms_io
 from .adanovo_dataloader import AdanovoDataset, AdanovoDataModule
 from .adanovo_modeling import Spec2Pep
 
-from pynovo.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
-from pynovo.transforms.misc import Compose
-from pynovo.utils.preprocessing import convert_mgf_ipc
-from pynovo.data import SpectrumData
+from novobench.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
+from novobench.transforms.misc import Compose
+from novobench.utils.preprocessing import convert_mgf_ipc
+from novobench.data import SpectrumData
 logger = logging.getLogger("adanovo")
 
 def init_logger():
-    output = "/jingbo/PyNovo/adanovo_nine.log"
+    output = "/PyNovo/adanovo_nine.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)

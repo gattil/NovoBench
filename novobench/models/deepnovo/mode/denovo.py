@@ -2,7 +2,7 @@ import os
 import torch
 import time
 import logging
-from pynovo.models.deepnovo import deepnovo_config
+from novobench.models.deepnovo import deepnovo_config
 import numpy as np
 from dataclasses import dataclass
 from ..deepnovo_modeling import Direction, InferenceModelWrapper, device

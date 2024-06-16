@@ -21,18 +21,18 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 from .casanovo_config import CasanovoConfig
-from pynovo.data import ms_io
+from novobench.data import ms_io
 from .casanovo_dataloader import CasanovoDataset, CasanovoDataModule
 from .casanovo_modeling import Spec2Pep
 
-from pynovo.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
-from pynovo.transforms.misc import Compose
-from pynovo.utils.preprocessing import convert_mgf_ipc
-from pynovo.data import SpectrumData
+from novobench.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
+from novobench.transforms.misc import Compose
+from novobench.utils.preprocessing import convert_mgf_ipc
+from novobench.data import SpectrumData
 logger = logging.getLogger("casanovo")
 
 def init_logger():
-    output = "/jingbo/PyNovo/casanovo_nine.log"
+    output = "/PyNovo/casanovo_nine.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)

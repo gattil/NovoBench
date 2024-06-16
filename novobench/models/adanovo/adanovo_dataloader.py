@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-from pynovo.data import SpectrumData
+from novobench.data import SpectrumData
 import polars as pl
 import numpy as np
 from typing import List, Tuple, Optional  # Added missing imports

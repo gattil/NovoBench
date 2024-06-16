@@ -46,7 +46,7 @@ class AdanovoConfig:
         # max_epochs: int = 8,
         num_sanity_val_steps: int = 0,
         save_top_k: int = 5,
-        model_save_folder_path: str = "/usr/commondata/local_public/jingbo/adanovo/nine_species_2/",
+        model_save_folder_path: str = "./",
         val_check_interval: int = 50_000,
         calculate_precision: bool = False,
         n_workers: int = 64,

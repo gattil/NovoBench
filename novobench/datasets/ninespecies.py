@@ -1,5 +1,5 @@
 import shutil
-from pynovo.data import SpectrumDataManager, SpectrumData
+from novobench.data import SpectrumDataManager, SpectrumData
 from .base import BaseDataset
 import pathlib
 import polars as pl

@@ -7,24 +7,24 @@ import time
 import math
 import logging
 from .mode.train_func import train, build_model
-from pynovo.utils.preprocessing import convert_mgf_ipc
+from novobench.utils.preprocessing import convert_mgf_ipc
 from .pointnovo_dataloader import DeepnovoDataModule, DeepNovoDenovoDataset, denovo_collate_func
 from .mode.denovo import  IonCNNDenovo
 from .pointnovo_modeling import InferenceModelWrapper
 from . import pointnovo_config as config
 from pathlib import Path
-from pynovo.data import SpectrumData
-from pynovo.data import ms_io
-from pynovo.metrics import evaluate
+from novobench.data import SpectrumData
+from novobench.data import ms_io
+from novobench.metrics import evaluate
 import numpy as np
-from pynovo.data import ms_io
+from novobench.data import ms_io
 import sys
-from pynovo.transforms import SetRangeMZ
-from pynovo.transforms.misc import Compose
+from novobench.transforms import SetRangeMZ
+from novobench.transforms.misc import Compose
 logger = logging.getLogger('pointnovo')
 
 def init_logger():
-    output = "/jingbo/PyNovo/pointnovo_seven.log"
+    output = "./pointnovo.log"
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
