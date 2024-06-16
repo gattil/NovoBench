@@ -4,8 +4,8 @@
   <img src='./images/overview.png' width="60%">
 </p> -->
 <div style="display: flex; justify-content: center;">
-  <img src='./images/overview.png' style="width: 35%; margin-right: 2%;" />
-  <img src='./images/framework.png' style="width: 48%; margin-left: 2%;" />
+  <img src='./images/overview.png' style="width: 48%; height: auto; margin-right: 2%;" />
+  <img src='./images/framework.png' style="width: 48%; height: auto; margin-left: 2%;" />
 </div>
 
 ## Introduction
