@@ -1,3 +1,2 @@
-from .casanovo_config import CasanovoConfig
 from .casanovo_dataloader import CasanovoDataModule
 from .casanovo_runner import CasanovoRunner

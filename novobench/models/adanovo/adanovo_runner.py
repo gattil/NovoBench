@@ -1,5 +1,6 @@
-"""Training and testing functionality for the de novo peptide sequencing
-model."""
+"""
+Training and testing functionality for the de novo peptide sequencing model.
+"""
 
 import glob
 import logging
@@ -20,7 +21,6 @@ import time
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-from .adanovo_config import AdanovoConfig
 from novobench.data import ms_io
 from .adanovo_dataloader import AdanovoDataset, AdanovoDataModule
 from .adanovo_modeling import Spec2Pep
@@ -31,8 +31,9 @@ from novobench.utils.preprocessing import convert_mgf_ipc
 from novobench.data import SpectrumData
 logger = logging.getLogger("adanovo")
 
-def init_logger():
-    output = "/PyNovo/adanovo_nine.log"
+def init_logger(config):
+    # Set up logging
+    output = config.logger_save_path
     logging.captureWarnings(True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -60,11 +61,10 @@ def init_logger():
 
 class AdanovoRunner:
     """A class to run Adanovo models.
-
     Parameters
     ----------
     config : Config object
-        The adanovo configuration.
+        The Adanovo configuration.
     model_filename : str, optional
         The model filename is required for eval and de novo modes,
         but not for training a model from scratch.
@@ -72,13 +72,13 @@ class AdanovoRunner:
 
     def __init__(
         self,
-        config: AdanovoConfig,
+        config,
         model_filename: Optional[str] = None,
-        saved_path: str = "",
+        saved_path: Optional[str] = "",
     ) -> None:
         
         
-        init_logger()
+        init_logger(config)
         """Initialize a ModelRunner"""
         self.config = config
         self.model_filename = model_filename
@@ -106,12 +106,11 @@ class AdanovoRunner:
 
 
     @staticmethod
-    def preprocessing_pipeline(min_mz=50.0, max_mz=2500.0, n_peaks: int = 150,
-                               min_intensity: float = 0.01, remove_precursor_tol: float = 2.0,):
+    def preprocessing_pipeline(config):
         transforms = [
-            SetRangeMZ(min_mz, max_mz), 
-            RemovePrecursorPeak(remove_precursor_tol),
-            FilterIntensity(min_intensity, n_peaks),
+            SetRangeMZ(config.min_mz, config.max_mz), 
+            RemovePrecursorPeak(config.remove_precursor_tol),
+            FilterIntensity(config.min_intensity, config.n_peaks),
             ScaleIntensity()
         ]
         return Compose(*transforms)
@@ -171,7 +170,7 @@ class AdanovoRunner:
         training_time = time.time() - start_time
         logger.info(f"Training took {training_time:.2f} seconds")
 
-    def evaluate(self, test_df: pl.DataFrame,) -> None:
+    def denovo(self, test_df: pl.DataFrame,) -> None:
         """Evaluate peptide sequence preditions from a trained Adanovo model.
 
         Parameters
@@ -188,60 +187,14 @@ class AdanovoRunner:
         test_loader = AdanovoDataModule(
             df = test_df,
             n_workers=self.config.n_workers,
-            batch_size=self.config.train_batch_size // self.trainer.num_devices if not self.config.calculate_precision else self.config.predict_batch_size
+            batch_size=self.config.predict_batch_size // self.trainer.num_devices 
         ).get_dataloader()
         
         start_time = time.time()
         self.trainer.validate(self.model, test_loader)
         training_time = time.time() - start_time
-        logger.info(f"Evaluating took {training_time:.2f} seconds")
+        logger.info(f"denovo took {training_time:.2f} seconds")
 
-    def predict(self, peak_path: Iterable[str], output: str) -> None:
-        """Predict peptide sequences with a trained Adanovo model.
-
-        Parameters
-        ----------
-        peak_path : str
-            The path with the MS data files for predicting peptide sequences.
-        output : str
-            Where should the output be saved?
-
-        Returns
-        -------
-        self
-        """
-        self.writer = ms_io.MztabWriter(Path(output).with_suffix(".mztab"))
-        self.writer.set_metadata(
-            self.config,
-            model=str(self.model_filename),
-        )
-
-        self.initialize_trainer(train=False)
-        self.initialize_model(train=False)
-        self.model.out_writer = self.writer
-
-
-
-        peak_path = Path(peak_path)
-        if peak_path.is_file():
-            peak_path_list = [peak_path]
-        else:
-            peak_path_list = list(peak_path.iterdir())
-        self.writer.set_ms_run(peak_path_list)
-
-        
-        # convert to df
-        test_df = convert_mgf_ipc(peak_path)
-
-        # test_df = test_df.sample(100)
-        # test loader
-        test_loader = AdanovoDataModule(
-            df = SpectrumData(test_df),
-            n_workers=self.config.n_workers,
-            batch_size=self.config.train_batch_size // self.trainer.num_devices
-        ).get_dataloader()
-        self.trainer.predict(self.model,test_loader)
-        self.writer.save()
 
 
     def initialize_trainer(self, train: bool) -> None:
@@ -263,7 +216,7 @@ class AdanovoRunner:
                 devices = "auto"
             else:
                 devices = self.config.devices
-
+            
             additional_cfg = dict(
                 devices=devices,
                 callbacks=self.callbacks,
@@ -272,7 +225,7 @@ class AdanovoRunner:
                 num_sanity_val_steps=self.config.num_sanity_val_steps,
                 strategy=self._get_strategy(),
                 val_check_interval=self.config.val_check_interval,
-                check_val_every_n_epoch=None,
+                check_val_every_n_epoch=self.config.check_val_every_n_epoch,
             )
             trainer_cfg.update(additional_cfg)
 
@@ -302,17 +255,13 @@ class AdanovoRunner:
             min_peptide_len=self.config.min_peptide_len,
             n_beams=self.config.n_beams,
             top_match=self.config.top_match,
-            n_log=self.config.n_log,
-            tb_summarywriter=self.config.tb_summarywriter,
             train_label_smoothing=self.config.train_label_smoothing,
             warmup_iters=self.config.warmup_iters,
             max_iters=self.config.max_iters,
             lr=self.config.learning_rate,
             weight_decay=self.config.weight_decay,
-            out_writer=self.writer,
-            calculate_precision=self.config.calculate_precision,
             s1=self.config.s1,
-            s2=self.config.s2,
+            s2=self.config.s2
         )
 
         # Reconfigurable non-architecture related parameters for a loaded model
@@ -323,15 +272,13 @@ class AdanovoRunner:
             n_beams=self.config.n_beams,
             min_peptide_len=self.config.min_peptide_len,
             top_match=self.config.top_match,
-            n_log=self.config.n_log,
-            tb_summarywriter=self.config.tb_summarywriter,
             train_label_smoothing=self.config.train_label_smoothing,
             warmup_iters=self.config.warmup_iters,
             max_iters=self.config.max_iters,
             lr=self.config.learning_rate,
             weight_decay=self.config.weight_decay,
-            out_writer=self.writer,
-            calculate_precision=self.config.calculate_precision,
+            s1=self.config.s1,
+            s2=self.config.s2
         )
 
         if self.model_filename is None:
@@ -359,7 +306,7 @@ class AdanovoRunner:
             self.model = Spec2Pep.load_from_checkpoint(
                 self.model_filename, map_location=device, saved_path=self.saved_path, **loaded_model_params
             )
-            print('load model.....')
+
             architecture_params = set(model_params.keys()) - set(
                 loaded_model_params.keys()
             )
@@ -379,7 +326,6 @@ class AdanovoRunner:
                     map_location=device,
                     **model_params,
                 )
-                print('load model.....')
             except RuntimeError:
                 raise RuntimeError(
                     "Weights file incompatible with the current version of "

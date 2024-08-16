@@ -8,17 +8,16 @@ from typing import Any, Dict, List, Optional, Tuple, Union, Set
 import einops
 import sys 
 sys.path.append("..") 
-import pynovo.models.helixnovo.helixnovo_modeling.depthcharge.masses
+import novobench.models.helixnovo.helixnovo_modeling.depthcharge.masses
 import numpy as np
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from pynovo.models.helixnovo.helixnovo_modeling.depthcharge.components import ModelMixin, PeptideDecoder, SpectrumEncoder
-from .import evaluate
-from pynovo.models.helixnovo.helixnovo_modeling import depthcharge
+from novobench.models.helixnovo.helixnovo_modeling.depthcharge.components import ModelMixin, PeptideDecoder, SpectrumEncoder
+from novobench.models.helixnovo.helixnovo_modeling import depthcharge
+import pandas as pd
 
-
-logger = logging.getLogger("pi-HelixNovo")
+logger = logging.getLogger("helixNovo")
 
 
 class Spec2Pep(pl.LightningModule, ModelMixin):
@@ -95,18 +94,22 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         max_charge: int = 5,
         precursor_mass_tol: float = 50,
         isotope_error_range: Tuple[int, int] = (0, 1),
-        n_log: int = 10,
+        n_log: int = 1,
         config:dict={},
         tb_summarywriter: Optional[
             torch.utils.tensorboard.SummaryWriter
         ] = None,
         warmup_iters: int = 100_000,
         max_iters: int = 600_000,
+        saved_path = "",
+        decoding='beam search',
+        n_beams=5,
         out_writer: Optional[str] = None,
         **kwargs: Dict,
     ):
         super().__init__()
 
+        self.saved_path = saved_path
         # Build the model.
         if custom_encoder is not None:
             self.encoder = custom_encoder
@@ -155,8 +158,8 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
 
         # Output writer during predicting.
         self.out_writer = out_writer
-        self.decoding=config['decoding']
-        self.n_beams=config['n_beams']
+        self.decoding = decoding
+        self.n_beams = n_beams
 
     def forward(
         self, memories, mem_masks, precursors
@@ -824,10 +827,10 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         pred = pred[:, :-1, :].reshape(-1, self.decoder.vocab_size + 1)
 
         loss = self.celoss(pred, truth.flatten())
-        print('training loss:',loss)
+        # print('training loss:',loss)
         self.log(
-            "CELoss",
-            {mode: loss.detach()},
+            f"{mode}_CELoss",
+            loss.detach(),
             on_step=False,
             on_epoch=True,
             sync_dist=True,
@@ -855,98 +858,51 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
             The loss of the validation step.
         """
         # Record the loss.
-        pred, truth, memories, mem_masks = self._forward_step(*batch)
-        pred = pred[:, :-1, :].reshape(-1, self.decoder.vocab_size + 1)
-        loss = self.celoss(pred, truth.flatten())
-        mode='valid'
-        self.log(
-            "CELoss",
-            {mode: loss.detach()},
-            on_step=False,
-            on_epoch=True,
-            sync_dist=True,
-        )
-        precursors=batch[1]
-
-        # Calculate and log amino acid and peptide match evaluation metrics from
-        # the predicted peptides.
-        peptides_pred_raw, aa_scores = self.forward(memories, mem_masks,precursors)
-        # FIXME: Temporary fix to skip predictions with multiple stop tokens.
-        peptides_pred, peptides_true = [], []
-        peptides_score = []
-        for peptide_pred, peptide_true, aa_score in zip(peptides_pred_raw, batch[2], aa_scores):
-            length = len(re.split(r"(?<=.)(?=[A-Z])", peptide_pred))
-            if length > 0:
-                aa_score = aa_score[0:length,:]
-                aa_score = torch.flip(aa_score, dims=[0])
-                pep_score = aa_score.max(dim=1).values.float().mean().item()
-                peptides_pred.append(peptide_pred)
-                peptides_score.append(pep_score)
-                peptides_true.append(peptide_true)
-            else:
-                peptides_pred.append('$')
-                peptides_score.append(0.0)
-                peptides_true.append(peptide_true)
+        loss = self.training_step(batch, mode="valid")
+        if not self.saved_path == "":
+            pred, truth, memories, mem_masks = self._forward_step(*batch)
+            precursors=batch[1]
+            peptides_pred_raw, aa_scores = self.forward(memories, mem_masks,precursors)
+            peptides_pred, peptides_true = [], []
+            peptides_score = []
+            for peptide_pred, peptide_true, aa_score in zip(peptides_pred_raw, batch[2], aa_scores):
+                # import pdb; pdb.set_trace()
+                length = len(re.split(r"(?<=.)(?=[A-Z])", peptide_pred))
+                split_peptide = re.split(r"(?<=.)(?=[A-Z])", peptide_pred)
+                if length > 0 and split_peptide[0] != '':
+                    aa_score = aa_score[0:length,:]
+                    aa_score = torch.flip(aa_score, dims=[0])
+                    pep_score = aa_score.max(dim=1).values.float().mean().item()
+                    peptides_pred.append(peptide_pred)
+                    peptides_score.append(pep_score)
+                    peptides_true.append(peptide_true)
+                else:
+                    peptides_pred.append('')
+                    peptides_score.append(float('-inf'))
+                    peptides_true.append(peptide_true)
         
-        #with open(self.out_writer,'a') as f:
-        #    for pep in peptides_pred:
-        #        f.write(f'{pep}\t{pep_score}\n')
-        
-        aa_precision, aa_recall, pep_recall = evaluate.aa_match_metrics(
-            *evaluate.aa_match_batch(
-                peptides_pred, peptides_true, self.decoder._peptide_mass.masses
-            )
-        )
-        log_args = dict(on_step=False, on_epoch=True, sync_dist=True)
-        self.log("aa_precision", {"valid": aa_precision}, **log_args)
-        self.log("aa_recall", {"valid": aa_recall}, **log_args)
-        self.log("pep_recall", {"valid": pep_recall}, **log_args)
+            assert(len(peptides_pred)==len(peptides_true) and len(peptides_score)==len(peptides_true))
+            # Save the predicted peptides to a file.(denovo)
+            batch_df = pd.DataFrame({
+                'peptides_true': peptides_true,
+                'peptides_pred': peptides_pred,
+                'peptides_score': peptides_score
+            })
+            batch_df.to_csv(self.saved_path, mode='a', header=False, index=False)
 
         return loss
-
-    def predict_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor, List[str]], *args
-    ) -> Tuple[torch.Tensor, torch.Tensor, List[str], torch.Tensor]:
-        """
-        A single prediction step.
-
-        Parameters
-        ----------
-        batch : Tuple[torch.Tensor, torch.Tensor, List[str]]
-            A batch of (i) MS/MS spectra, (ii) precursor information, (iii)
-            spectrum title.
-        
-        """
-        spectra,precursors,titles=batch[0],batch[1],batch[2]
-        memories, mem_masks = self.encoder(spectra,precursors)
-        peptides_pred_raw, aa_scores = self.forward(memories, mem_masks,precursors)
-        # FIXME: Temporary fix to skip predictions with multiple stop tokens.
-        peptides_pred = []
-        peptides_score = []
-        for peptide_pred,aa_score in zip(peptides_pred_raw,aa_scores):
-            length = len(re.split(r"(?<=.)(?=[A-Z])", peptide_pred))
-            if length > 0:
-                aa_score = aa_score[0:length,:]
-                aa_score = torch.flip(aa_score, dims=[0])
-                pep_score = aa_score.max(dim=1).values.float().mean().item()
-                peptides_pred.append(peptide_pred)
-                peptides_score.append(pep_score)
-            else:
-                peptides_pred.append('$')
-                peptides_score.append(0.0)
-                    
-        with open(self.out_writer,'a') as f:
-            for i in range(len(peptides_pred)):
-                f.write(f'{titles[i]}\t{peptides_pred[i]}\t{round(peptides_score[i],2)}\n')
 
     def on_train_epoch_end(self) -> None:
         """
         Log the training loss at the end of each epoch.
         """
-        pass
-        # train_loss = self.trainer.callback_metrics["CELoss"]["train"].detach()
-        # self._history[-1]["train"] = train_loss
-        # self._log_history()
+        train_loss = self.trainer.callback_metrics["train_CELoss"].detach()
+        metrics = {
+            "step": self.trainer.global_step,
+            "train": train_loss.item(),
+        }
+        self._history.append(metrics)
+        self._log_history()
 
     def on_validation_epoch_end(self) -> None:
         """
@@ -954,63 +910,34 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
         """
         callback_metrics = self.trainer.callback_metrics
         metrics = {
-            "epoch": self.trainer.current_epoch,
-            "valid": callback_metrics["CELoss"]["valid"].detach(),
-            "valid_aa_precision": callback_metrics["aa_precision"][
-                "valid"
-            ].detach(),
-            "valid_aa_recall": callback_metrics["aa_recall"]["valid"].detach(),
-            "valid_pep_recall": callback_metrics["pep_recall"][
-                "valid"
-            ].detach(),
+            "step": self.trainer.global_step,
+            "valid": callback_metrics["valid_CELoss"].detach().item(),
         }
         self._history.append(metrics)
         self._log_history()
 
-    def on_predict_epoch_end(
-        self, results: List[List[Tuple[np.ndarray, List[str], torch.Tensor]]]
-    ) -> None:
-        """
-        Write the predicted peptide sequences and amino acid scores to the
-        output file.
-        """
-        print('Finished!')
+
 
     def _log_history(self) -> None:
         """
         Write log to console, if requested.
         """
         # Log only if all output for the current epoch is recorded.
-        if len(self._history) > 0 and len(self._history[-1]) == 6:
-            if len(self._history) == 1:
-                logger.info(
-                    "Epoch\tTrain loss\tValid loss\tAA precision\tAA recall\t"
-                    "Peptide recall"
-                )
-            metrics = self._history[-1]
-            if metrics["epoch"] % self.n_log == 0:
-                logger.info(
-                    "%i\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f",
-                    metrics["epoch"] + 1,
-                    metrics.get("train", np.nan),
-                    metrics.get("valid", np.nan),
-                    metrics.get("valid_aa_precision", np.nan),
-                    metrics.get("valid_aa_recall", np.nan),
-                    metrics.get("valid_pep_recall", np.nan),
-                )
-                if self.tb_summarywriter is not None:
-                    for descr, key in [
-                        ("loss/train_crossentropy_loss", "train"),
-                        ("loss/dev_crossentropy_loss", "valid"),
-                        ("eval/dev_aa_precision", "valid_aa_precision"),
-                        ("eval/dev_aa_recall", "valid_aa_recall"),
-                        ("eval/dev_pep_recall", "valid_pep_recall"),
-                    ]:
-                        self.tb_summarywriter.add_scalar(
-                            descr,
-                            metrics.get(key, np.nan),
-                            metrics["epoch"] + 1,
-                        )
+        if len(self._history) == 0:
+            return
+        if len(self._history) == 1:
+            header = "Step\tTrain loss\tValid loss\t"
+            logger.info(header)
+        metrics = self._history[-1]
+        if metrics["step"] % self.n_log == 0:
+            msg = "%i\t%.6f\t%.6f"
+            vals = [
+                metrics["step"],
+                metrics.get("train", np.nan),
+                metrics.get("valid", np.nan),
+            ]
+            logger.info(msg % tuple(vals))
+
 
     def configure_optimizers(
         self,

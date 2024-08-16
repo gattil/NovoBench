@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from pynovo.data.base import SpectrumData
+from novobench.data.base import SpectrumData
 import polars as pl
 
 class BaseTransform(ABC):

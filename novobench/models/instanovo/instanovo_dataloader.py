@@ -1,81 +1,71 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
-from pynovo.data import SpectrumData
-import polars as pl
-import numpy as np
-from typing import List, Tuple, Optional  # Added missing imports
 import re
+import numpy as np
+import pandas as pd
+import polars as pl
+import spectrum_utils.spectrum as sus
+import torch
+from pynovo.data import SpectrumData
+from torch import nn
+from torch import Tensor
+from torch.utils.data import Dataset, DataLoader
 
 
-PROTON_MASS_AMU = 1.007276466812  # Adjust as needed
+PROTON_MASS_AMU = 1.007276
+
+
 
 class InstanovoDataset(Dataset):
-    """A Dataset to handle spectrum data stored in a Polars DataFrame."""
-
-    def __init__(self, data: SpectrumData):
-        """
-        Initializes the dataset with a preprocessed Polars DataFrame.
-
-        Parameters:
-        ----------
-        data : SpectrumData
-            the spectrum data.
-        """
+    def __init__(self, 
+            data: SpectrumData,
+            s2i: dict[str, int],
+            eos_symbol: str = "</s>",
+            return_str: bool = False
+            ) -> None:
         super().__init__()
         self.df = data.df
+        self.s2i = s2i
+        self.return_str = return_str
+
+        if eos_symbol in self.s2i:
+            self.EOS_ID = self.s2i[eos_symbol]
+        else:
+            self.EOS_ID = -1
+
 
     def __len__(self) -> int:
         return self.df.height
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, float, int, torch.Tensor | str]:
-        mz_array = torch.tensor(self.df[idx, "mz_array"].to_list(), dtype=torch.float32)
-        intensity_array = torch.tensor(self.df[idx, "intensity_array"].to_list(), dtype=torch.float32)
+    def __getitem__(self, idx: int):
+        mz_array = torch.Tensor(self.df[idx, "mz_array"].to_list())
+        int_array = torch.Tensor(self.df[idx, "intensity_array"].to_list())
         precursor_mz = self.df[idx, "precursor_mz"]
         precursor_charge = self.df[idx, "precursor_charge"]
-
         peptide = ''
         if 'modified_sequence' in self.df.columns:
             peptide = self.df[idx, 'modified_sequence'] 
+        if not self.return_str:
+            peptide = re.split(r"(?<=.)(?=[A-Z])", peptide)
 
-
-        spectrum = torch.stack([mz_array, intensity_array], dim=1)
+        spectrum = torch.stack([mz_array, int_array], dim=1)
 
         return spectrum, precursor_mz, precursor_charge, peptide
 
-
 class InstanovoDataModule:
-    """
-    A simplified data loader for the de novo sequencing task.
-
-    Parameters:
-    ----------
-    dataframe : pl.DataFrame
-        The DataFrame containing the spectrum data.
-    batch_size : int
-        The batch size to use.
-    n_workers : int, optional
-        The number of workers to use for data loading. By default, it uses 0 (main process).
-    """
-
     def __init__(
         self,
         df: pl.DataFrame,
+        s2i: dict[str, int],
+        eos_symbol: str = "</s>",
+        return_str: bool = False,
         batch_size: int = 128,
-        n_workers: Optional[int] = 0,
+        n_workers: int = 64,
     ):
         self.dataframe = df
         self.batch_size = batch_size
         self.n_workers = n_workers
-        self.dataset = InstanovoDataset(df)
-
+        self.dataset = InstanovoDataset(df,s2i,eos_symbol,return_str)
+    
     def get_dataloader(self,shuffle=False) -> DataLoader:
-        """
-        Create and return a PyTorch DataLoader.
-
-        Returns:
-        -------
-        DataLoader: A PyTorch DataLoader for the spectrum data.
-        """
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,
@@ -85,41 +75,30 @@ class InstanovoDataModule:
             shuffle = shuffle
         )
 
-def collate_batch(batch: List[Tuple[torch.Tensor, float, int, str]]) -> Tuple[torch.Tensor, torch.Tensor, np.ndarray]:
-    """
-    Collate MS/MS spectra into a batch, similar to the prepare_batch function.
 
-    Parameters
-    ----------
-    batch : List[Tuple[torch.Tensor, float, int, str]]
-        A batch of data consisting of for each spectrum (i) a tensor with the m/z and intensity peak values,
-        (ii) the precursor m/z, (iii) the precursor charge, (iv) the spectrum identifier or peptide sequence.
 
-    Returns
-    -------
-    spectra : torch.Tensor
-        The padded mass spectra tensor with the m/z and intensity peak values for each spectrum.
-    precursors : torch.Tensor
-        A tensor with the precursor neutral mass, precursor charge, and precursor m/z.
-    spectrum_ids : np.ndarray
-        An array of spectrum identifiers or peptide sequences.
-    """
-    spectra, precursor_mzs, precursor_charges, spectrum_ids = zip(*batch)
+def collate_batch(
+    batch: list[tuple[Tensor, float, int, Tensor]]
+) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    """Collate batch of samples."""
+    spectra, precursor_mzs, precursor_charges, peptides = zip(*batch)
 
-    
-    # Pad spectra to create a uniform tensor
-    spectra = torch.nn.utils.rnn.pad_sequence(spectra, batch_first=True)
+    # Pad spectra
+    ll = torch.tensor([x.shape[0] for x in spectra], dtype=torch.long)
+    spectra = nn.utils.rnn.pad_sequence(spectra, batch_first=True)
+    spectra_mask = torch.arange(spectra.shape[1], dtype=torch.long)[None, :] >= ll[:, None]
 
-    
-    # Convert precursor information to tensors
-    precursor_mzs = torch.tensor(precursor_mzs, dtype=torch.float32)
-    precursor_charges = torch.tensor(precursor_charges, dtype=torch.float32)
-    
-    # Calculate precursor masses and create a tensor for precursor data
+    # Pad peptide
+    if isinstance(peptides[0], str):
+        peptides_mask = None
+    else:
+        ll = torch.tensor([x.shape[0] for x in peptides], dtype=torch.long)
+        peptides = nn.utils.rnn.pad_sequence(peptides, batch_first=True)
+        peptides_mask = torch.arange(peptides.shape[1], dtype=torch.long)[None, :] >= ll[:, None]
+
+    precursor_mzs = torch.tensor(precursor_mzs)
+    precursor_charges = torch.tensor(precursor_charges)
     precursor_masses = (precursor_mzs - PROTON_MASS_AMU) * precursor_charges
-    precursors = torch.stack([precursor_masses, precursor_charges, precursor_mzs], dim=1)
-    
-    # Convert spectrum identifiers or peptide sequences to a NumPy array
-    spectrum_ids = np.array(spectrum_ids)
+    precursors = torch.vstack([precursor_masses, precursor_charges, precursor_mzs]).T.float()
 
-    return spectra, precursors, spectrum_ids
+    return spectra, precursors, spectra_mask, peptides, peptides_mask

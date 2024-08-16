@@ -1,4 +1,8 @@
 # NovoBench: Benchmark $de$ $novo$ peptide sequencing algorithms
+<p>
+  <a href="https://github.com/pytorch/pytorch"> <img src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white" height="22px"></a>
+  <a href="https://github.com/Lightning-AI/pytorch-lightning"> <img src="https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white" height="22px"></a>
+<p>
 
 <p align="center" width="100%">
   <img src='./images/all.png' width="600%">
@@ -18,12 +22,12 @@ conda activate novobench
 ## Train a new  model 
 To train a model from scratch, run:
 ```shell
-python tests/casanovo.py --mode train --data_path parquet_path --model_path ckpt_path 
+python tests/casanovo.py --mode train --data_path parquet_path --model_path ckpt_path  --config_path config_path
 ```
 
 
 ## Sequence mass spectra
 To sequence the mass spectra with NovoBench, use the following command:
 ```shell
-python tests/casanovo.py --mode seq --data_path parquet_path --model_path ckpt_path --output_path csv_path
-```
+python tests/casanovo.py --mode seq --data_path parquet_path --model_path ckpt_path --denovo_output_path csv_path --config_path config_path
+``` 

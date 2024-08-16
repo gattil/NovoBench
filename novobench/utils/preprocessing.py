@@ -31,42 +31,38 @@ def convert_mgf_ipc(
 
     df = pl.DataFrame(schema=schema)
 
+
     index = 1
-    if source.is_file():
-        filenames = [source]
-    else:
-        filenames = list(source.iterdir())
+    filepath = source
+    exp = load_from_mgf(str(filepath))
 
-    for filepath in filenames:
-        exp = load_from_mgf(str(filepath))
-        data = []
-        # for spectrum in tqdm(exp):
-        for spectrum in exp:
-            meta = spectrum.metadata
-            peptide = ""
-            unmod_peptide = ""
-            if "peptide_sequence" in meta:
-                peptide = meta["peptide_sequence"]
-                unmod_peptide = "".join([x[0] for x in re.split(r"(?<=.)(?=[A-Z])", peptide)])
-            if "charge" not in meta:
-                print(f"Charge not found for {meta['peptide_sequence']}, skipping...")
-                continue
+    data = []
 
-            data.append(
-                [
-                    filepath.parent.name+'_'+filepath.stem,
-                    index,
-                    unmod_peptide,
-                    peptide ,
-                    meta["precursor_mz"],
-                    meta["charge"],
-                    list(spectrum.mz),
-                    list(spectrum.intensities),
-                ]
-            )
-            index += 1
-        data_df = pl.DataFrame(data, schema=schema)
+    for spectrum in tqdm(exp):
+        meta = spectrum.metadata
+        peptide = ""
+        unmod_peptide = ""
+        if "peptide_sequence" in meta:
+            peptide = meta["peptide_sequence"]
+            unmod_peptide = "".join([x[0] for x in re.split(r"(?<=.)(?=[A-Z])", peptide)])
+        if "charge" not in meta:
+            print(f"Charge not found for {meta['peptide_sequence']}, skipping...")
+            continue
 
-        df = pl.concat([df, data_df], how="diagonal")
+        data.append(
+            [
+                filepath.parent.name+'_'+filepath.stem,
+                index,
+                unmod_peptide,
+                peptide ,
+                meta["precursor_mz"],
+                meta["charge"],
+                list(spectrum.mz),
+                list(spectrum.intensities),
+            ]
+        )
+        index += 1
+    data_df = pl.DataFrame(data, schema=schema)
 
+    df = pl.concat([df, data_df], how="diagonal")
     return df

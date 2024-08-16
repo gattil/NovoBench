@@ -82,7 +82,7 @@ class AdanovoDataModule:
             num_workers=self.n_workers,
             pin_memory=True,
             collate_fn=collate_batch,
-            shuffle=shuffle
+            shuffle = shuffle
         )
 
 def collate_batch(batch: List[Tuple[torch.Tensor, float, int, str]]) -> Tuple[torch.Tensor, torch.Tensor, np.ndarray]:

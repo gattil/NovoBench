@@ -1,5 +1,5 @@
 from typing import Tuple
-from pynovo.transforms.base import BaseTransform
+from novobench.transforms.base import BaseTransform
 import polars as pl
 
 class Compose(BaseTransform):

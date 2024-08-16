@@ -1,25 +1,28 @@
-# Random seed to ensure reproducible results.
-random_seed: 454
-
 # Spectrum processing options.
-n_peaks: 150
-min_mz: 50.52564895  # 1.0005079 * 50.5
+n_peaks: 200 # 150
+min_mz: 50.0
 max_mz: 2500.0
 min_intensity: 0.01
-remove_precursor_tol: 2.0  # Da
+remove_precursor_tol: 2.0
 max_charge: 10
-precursor_mass_tol: 50  # ppm
+precursor_mass_tol: 50 # ppm
 isotope_error_range: [0, 1]
 
 # Model architecture options.
-dim_model: 512
-n_head: 8
+dim_model: 768
+n_head: 16
 dim_feedforward: 1024
 n_layers: 9
-dropout: 0
+dropout: 0.1
 dim_intensity:
 custom_encoder:
-max_length: 100
+
+use_depthcharge: False
+enc_type: "instanovo"
+dec_type: "depthcharge"
+dec_precursor_sos: True
+
+max_length: 30
 residues:
   "G": 57.021464
   "A": 71.037114
@@ -47,27 +50,34 @@ residues:
   "N(+.98)": 115.026943
   "Q(+.98)": 129.042594
 n_log: 1
-tb_summarywriter:
+
+
 warmup_iters: 100_000
-max_iters: 600_000
-learning_rate: 5e-4
+max_iters: 3_000_000
+learning_rate: 5e-5 
 weight_decay: 1e-5
 
 # Training/inference options.
 train_batch_size: 32
-predict_batch_size: 1024
+grad_accumulation: 1
+gradient_clip_val: 10.0
+predict_batch_size: 8
+n_beams: 5
 
-logger:
-max_epochs: 30
+epochs: 30
 num_sanity_val_steps: 0
 
-train_from_scratch: True
+# train_from_scratch: False
+
+# Subsets for training and validation set
+train_subset: 1.0 # Used for debugging
+valid_subset: 0.02 # Speed up training
+val_check_interval: 50000 # 1.0
 
 save_model: True
-model_save_folder_path: "./"
+model_save_folder_path: "/jingbo/PyNovo/pynovo/save_models/instanovo/instanovo_nine"
 save_weights_only: True
-every_n_train_steps: 50_000
+# resume_checkpoint: ""
 
-decoding: 'beam search'  # select in ["beam search",'greedy']
-n_beams: 5
+n_gpu: 1
 n_workers: 64

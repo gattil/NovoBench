@@ -1,6 +1,6 @@
 import spectrum_utils.spectrum as sus
-from pynovo.transforms.base import BaseTransform
-from pynovo.data.base import SpectrumData
+from novobench.transforms.base import BaseTransform
+from novobench.data.base import SpectrumData
 import numpy as np
 import polars as pl
 

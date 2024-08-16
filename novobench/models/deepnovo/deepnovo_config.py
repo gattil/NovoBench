@@ -742,42 +742,18 @@ print("num_units ", num_units)
 dropout_rate = 0.25
 
 batch_size = 32
-num_workers = 64
 print("batch_size ", batch_size)
 
+
+
+## Finishing
+num_workers = 64
 num_epoch = 30
-
 init_lr = 1e-3
-
-train_stack_size = 500 # 3000 # 5000
-valid_stack_size = 1500#1000 # 3000 # 5000
-test_stack_size = 5000
-decode_stack_size = 1000 # 3000
-print("train_stack_size ", train_stack_size)
-print("valid_stack_size ", valid_stack_size)
-print("test_stack_size ", test_stack_size)
-print("decode_stack_size ", decode_stack_size)
-
 steps_per_validation = 3000 # 100 # 2 # 4 # 200
-print("steps_per_validation ", steps_per_validation)
-
 max_gradient_norm = 5.0
 print("max_gradient_norm ", max_gradient_norm)
 
 
-# ==============================================================================
-# DATASETS
-# ==============================================================================
-
-
-data_format = "mgf"
-cleavage_rule = "trypsin"
-num_missed_cleavage = 2
-fixed_mod_list = ['C']
-var_mod_list = ['N', 'Q', 'M']
-num_mod = 3
-precursor_mass_tolerance = 0.01 # Da
-precursor_mass_ppm = 15.0/1000000 # ppm (20 better) # instead of absolute 0.01 Da
-topk_output = 1
 
 
