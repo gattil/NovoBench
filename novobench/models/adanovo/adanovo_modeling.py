@@ -617,7 +617,12 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
                 heapadd = heapq.heappushpop
             heapadd(
                 pred_cache[spec_idx],
-                (peptide_score, aa_scores, torch.clone(pred_peptide)),
+                (
+                    peptide_score,
+                    np.random.random_sample(),
+                    aa_scores,
+                    torch.clone(pred_peptide),
+                ),
             )
 
     def _get_topk_beams(
@@ -742,7 +747,7 @@ class Spec2Pep(pl.LightningModule, ModelMixin):
                         aa_scores,
                         "".join(self.decoder.detokenize(pred_tokens)),
                     )
-                    for pep_score, aa_scores, pred_tokens in heapq.nlargest(
+                    for pep_score,_, aa_scores, pred_tokens in heapq.nlargest(
                         self.top_match, peptides
                     )
                 ]
