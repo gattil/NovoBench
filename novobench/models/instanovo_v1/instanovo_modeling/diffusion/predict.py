@@ -10,11 +10,11 @@ import torch
 import tqdm
 import yaml
 
-from novobench.models.instanovo.instanovo_modeling.diffusion.dataset import AnnotatedPolarsSpectrumDataset
-from novobench.models.instanovo.instanovo_modeling.diffusion.dataset import collate_batches
-from novobench.models.instanovo.instanovo_modeling.diffusion.multinomial_diffusion import MultinomialDiffusion
-from novobench.models.instanovo.instanovo_modeling.inference.diffusion import DiffusionDecoder
-from novobench.models.instanovo.instanovo_modeling.utils.residues import ResidueSet
+from pynovo.models.instanovo.instanovo_modeling.diffusion.dataset import AnnotatedPolarsSpectrumDataset
+from pynovo.models.instanovo.instanovo_modeling.diffusion.dataset import collate_batches
+from pynovo.models.instanovo.instanovo_modeling.diffusion.multinomial_diffusion import MultinomialDiffusion
+from pynovo.models.instanovo.instanovo_modeling.inference.diffusion import DiffusionDecoder
+from pynovo.models.instanovo.instanovo_modeling.utils.residues import ResidueSet
 
 
 DIFFUSION_START_STEP = 15

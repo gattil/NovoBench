@@ -18,12 +18,13 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from novobench.models.instanovo.instanovo_modeling.inference.beam_search import BeamSearchDecoder
-from novobench.models.instanovo.instanovo_modeling.transformer.model import InstaNovo
-from novobench.models.instanovo.instanovo_modeling.utils.metrics import Metrics
-from novobench.models.instanovo.instanovo_dataloader import InstanovoDataModule
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+from pynovo.models.instanovo.instanovo_modeling.inference.beam_search import BeamSearchDecoder
+from pynovo.models.instanovo.instanovo_dataloader import InstanovoDataModule
+from pynovo.models.instanovo.instanovo_modeling.transformer.model import InstaNovo
+from pynovo.models.instanovo.instanovo_modeling.utils.metrics import Metrics
+
+logger = logging.getLogger('instanovo')
+# logger.setLevel(logging.INFO)
 
 
 class PTModule(ptl.LightningModule):
@@ -35,7 +36,6 @@ class PTModule(ptl.LightningModule):
         model: InstaNovo,
         decoder: BeamSearchDecoder,
         metrics: Metrics,
-        # sw: SummaryWriter,
         optim: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler._LRScheduler,
         # device: str = 'cpu',
@@ -45,7 +45,6 @@ class PTModule(ptl.LightningModule):
         self.model = model
         self.decoder = decoder
         self.metrics = metrics
-        # self.sw = sw
         self.optim = optim
         self.scheduler = scheduler
 
@@ -136,28 +135,30 @@ class PTModule(ptl.LightningModule):
         preds = preds[:, :-1, :].reshape(-1, self.model.decoder.vocab_size + 1)
         loss = self.loss_fn(preds, truth.flatten())
 
+        # TODO
         # Greedy decoding
-        with torch.no_grad():
-            # y, _ = decoder(spectra, precursors, spectra_mask)
-            p = self.decoder.decode(
-                spectra=spectra,
-                precursors=precursors,
-                beam_size=self.config['instanovo']["n_beams"],
-                max_length=self.config['instanovo']["max_length"],
-            )
+        # with torch.no_grad():
+        #     # y, _ = decoder(spectra, precursors, spectra_mask)
+        #     p = self.decoder.decode(
+        #         spectra=spectra,
+        #         precursors=precursors,
+        #         beam_size=self.config["n_beams"],
+        #         max_length=self.config["max_length"],
+        #     )
 
-        # targets = self.model.batch_idx_to_aa(peptides)
-        y = ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
-        targets = peptides
-
-        aa_prec, aa_recall, pep_recall, _ = self.metrics.compute_precision_recall(targets, y)
-        aa_er = self.metrics.compute_aa_er(targets, y)
+        # # targets = self.model.batch_idx_to_aa(peptides)
+        # y = ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
+        # targets = peptides
+        
+        #TODO
+        # aa_prec, aa_recall, pep_recall, _ = self.metrics.compute_precision_recall(targets, y)
+        # aa_er = self.metrics.compute_aa_er(targets, y)
 
         self.valid_metrics["valid_loss"].append(loss.item())
-        self.valid_metrics["aa_er"].append(aa_er)
-        self.valid_metrics["aa_prec"].append(aa_prec)
-        self.valid_metrics["aa_recall"].append(aa_recall)
-        self.valid_metrics["pep_recall"].append(pep_recall)
+        # self.valid_metrics["aa_er"].append(aa_er)
+        # self.valid_metrics["aa_prec"].append(aa_prec)
+        # self.valid_metrics["aa_recall"].append(aa_recall)
+        # self.valid_metrics["pep_recall"].append(pep_recall)
 
         return loss.item()
 
@@ -178,10 +179,11 @@ class PTModule(ptl.LightningModule):
         logging.info(
             f"[Epoch {epoch:02d}] train_loss={self.running_loss:.5f}, valid_loss={valid_loss:.5f}"
         )
-        logging.info(f"[Epoch {epoch:02d}] Metrics:")
-        for metric in ["aa_er", "aa_prec", "aa_recall", "pep_recall"]:
-            val = np.mean(self.valid_metrics[metric])
-            logging.info(f"[Epoch {epoch:02d}] - {metric:11s}{val:.3f}")
+        # TODO
+        # logging.info(f"[Epoch {epoch:02d}] Metrics:")
+        # for metric in ["aa_er", "aa_prec", "aa_recall", "pep_recall"]:
+        #     val = np.mean(self.valid_metrics[metric])
+        #     logging.info(f"[Epoch {epoch:02d}] - {metric:11s}{val:.3f}")
 
         self._reset_valid_metrics()
 
@@ -212,22 +214,63 @@ class PTModule(ptl.LightningModule):
         self.valid_metrics: dict[str, list[float]] = {x: [] for x in valid_metrics}
 
 
+# flake8: noqa: CR001
 def train(
     train_df,
     valid_df,
-    config,
-    model_path, 
+    config: dict,
 ) -> None:
+    """Training function."""
+    # config["tb_summarywriter"] = config["tb_summarywriter"] + datetime.datetime.now().strftime(
+    #     "_%y_%m_%d_%H_%M"
+    # )
+
+    # sw = SummaryWriter(config["tb_summarywriter"])
+
     # Transformer vocabulary, should we include an UNK token?
-    if config['instanovo']["dec_type"] != "depthcharge":
-        vocab = ["PAD", "<s>", "</s>"] + list(config['instanovo']["residues"].keys())
+    if config["dec_type"] != "depthcharge":
+        vocab = ["PAD", "<s>", "</s>"] + list(config["residues"].keys())
     else:
-        vocab = list(config['instanovo']["residues"].keys())
+        vocab = list(config["residues"].keys())
     config["vocab"] = vocab
     s2i = {v: i for i, v in enumerate(vocab)}
     i2s = {i: v for i, v in enumerate(vocab)}
     logging.info(f"Vocab: {i2s}")
 
+    # logging.info("Loading data")
+    # if train_path.endswith(".ipc"):
+    #     train_df = pl.read_ipc(train_path)
+    #     train_df = train_df.sample(fraction=config["train_subset"], seed=0)
+    #     valid_df = pl.read_ipc(valid_path)
+    #     valid_df = valid_df.sample(fraction=config["valid_subset"], seed=0)
+    # elif train_path.endswith(".csv"):
+    #     train_df = pd.read_csv(train_path)
+    #     train_df = train_df.sample(frac=config["train_subset"], random_state=0)
+    #     valid_df = pd.read_csv(valid_path)
+    #     valid_df = valid_df.sample(frac=config["valid_subset"], random_state=0)
+
+    # train_ds = SpectrumDataset(train_df, s2i, config["n_peaks"], return_str=True)
+    # valid_ds = SpectrumDataset(valid_df, s2i, config["n_peaks"], return_str=True)
+
+    # logging.info(
+    #     f"Data loaded: {len(train_ds):,} training samples; {len(valid_ds):,} validation samples"
+    # )
+
+    # train_dl = DataLoader(
+    #     train_ds,
+    #     batch_size=config["train_batch_size"],
+    #     num_workers=config["n_workers"],
+    #     shuffle=True,
+    #     collate_fn=collate_batch,
+    # )
+
+    # valid_dl = DataLoader(
+    #     valid_ds,
+    #     batch_size=config["predict_batch_size"],
+    #     num_workers=config["n_workers"],
+    #     shuffle=False,
+    #     collate_fn=collate_batch,
+    # )
     train_dl = InstanovoDataModule(
         df = train_df,
         s2i = s2i,
@@ -261,42 +304,42 @@ def train(
     # init model
     model = InstaNovo(
         i2s=i2s,
-        residues=config['instanovo']["residues"],
-        dim_model=config['instanovo']["dim_model"],
-        n_head=config['instanovo']["n_head"],
-        dim_feedforward=config['instanovo']["dim_feedforward"],
-        n_layers=config['instanovo']["n_layers"],
-        dropout=config['instanovo']["dropout"],
-        max_length=config['instanovo']["max_length"],
+        residues=config["residues"],
+        dim_model=config["dim_model"],
+        n_head=config["n_head"],
+        dim_feedforward=config["dim_feedforward"],
+        n_layers=config["n_layers"],
+        dropout=config["dropout"],
+        max_length=config["max_length"],
         max_charge=config["max_charge"],
-        use_depthcharge=config['instanovo']["use_depthcharge"],
-        enc_type=config['instanovo']["enc_type"],
-        dec_type=config['instanovo']["dec_type"],
-        dec_precursor_sos=config['instanovo']["dec_precursor_sos"],
+        use_depthcharge=config["use_depthcharge"],
+        enc_type=config["enc_type"],
+        dec_type=config["dec_type"],
+        dec_precursor_sos=config["dec_precursor_sos"],
     )
 
-    if model_path is not None:
-        logging.info(f"Loading model checkpoint from '{model_path}'")
-        model_state = torch.load(model_path, map_location="cpu")
-        # check if PTL checkpoint
-        if "state_dict" in model_state:
-            model_state = {k.replace("model.", ""): v for k, v in model_state["state_dict"].items()}
+    # if model_path is not None:
+    #     logging.info(f"Loading model checkpoint from '{model_path}'")
+    #     model_state = torch.load(model_path, map_location="cpu")
+    #     # check if PTL checkpoint
+    #     if "state_dict" in model_state:
+    #         model_state = {k.replace("model.", ""): v for k, v in model_state["state_dict"].items()}
 
-        k_missing = np.sum(
-            [x not in list(model_state.keys()) for x in list(model.state_dict().keys())]
-        )
-        if k_missing > 0:
-            logging.warning(f"Model checkpoint is missing {k_missing} keys!")
-        k_missing = np.sum(
-            [x not in list(model.state_dict().keys()) for x in list(model_state.keys())]
-        )
-        if k_missing > 0:
-            logging.warning(f"Model state is missing {k_missing} keys!")
-        model.load_state_dict(model_state, strict=False)
+    #     k_missing = np.sum(
+    #         [x not in list(model_state.keys()) for x in list(model.state_dict().keys())]
+    #     )
+    #     if k_missing > 0:
+    #         logging.warning(f"Model checkpoint is missing {k_missing} keys!")
+    #     k_missing = np.sum(
+    #         [x not in list(model.state_dict().keys()) for x in list(model_state.keys())]
+    #     )
+    #     if k_missing > 0:
+    #         logging.warning(f"Model state is missing {k_missing} keys!")
+    #     model.load_state_dict(model_state, strict=False)
 
-    logging.info(
-        f"Model loaded with {np.sum([p.numel() for p in model.parameters()]):,d} parameters"
-    )
+    # logging.info(
+    #     f"Model loaded with {np.sum([p.numel() for p in model.parameters()]):,d} parameters"
+    # )
 
     logging.info("Test forward pass:")
     with torch.no_grad():
@@ -309,7 +352,7 @@ def train(
 
     # decoder = GreedyDecoder(model, i2s, max_length=config["max_length"])
     decoder = BeamSearchDecoder(model=model)
-    metrics = Metrics(config['instanovo']["residues"], config["isotope_error_range"])
+    metrics = Metrics(config["residues"], config["isotope_error_range"])
 
     # init optim
     # assert s2i["PAD"] == 0  # require PAD token to be index 0, all padding should use zeros
@@ -322,14 +365,15 @@ def train(
     scheduler = WarmupScheduler(optim, config["warmup_iters"])
     strategy = _get_strategy()
 
-    ptmodel = PTModule(config, model, decoder, metrics, optim, scheduler)
+    ptmodel = PTModule(config, model, decoder, metrics,  optim, scheduler)
 
-    if config['instanovo']["save_model"]:
+    if config["save_model"]:
         callbacks = [
             ptl.callbacks.ModelCheckpoint(
                 dirpath=config["model_save_folder_path"],
-                save_top_k=config["save_top_k"],
+                save_top_k=-1,
                 save_weights_only=config["save_weights_only"],
+                every_n_train_steps=config["val_check_interval"],
             )
         ]
     else:
@@ -341,13 +385,14 @@ def train(
         auto_select_gpus=True,
         callbacks=callbacks,
         devices="auto",
-        max_epochs=config["max_epochs"],
+        # logger=config["logger"],
+        max_epochs=config["epochs"],
         num_sanity_val_steps=config["num_sanity_val_steps"],
-        accumulate_grad_batches=config['instanovo']["grad_accumulation"],
-        gradient_clip_val=config['instanovo']["gradient_clip_val"],
-        val_check_interval=config["val_check_interval"],
-        check_val_every_n_epoch=config["check_val_every_n_epoch"],
+        accumulate_grad_batches=config["grad_accumulation"],
+        gradient_clip_val=config["gradient_clip_val"],
         strategy=strategy,
+        val_check_interval=config["val_check_interval"],
+        check_val_every_n_epoch=None,
     )
 
     # Train the model.
@@ -394,11 +439,41 @@ class WarmupScheduler(torch.optim.lr_scheduler._LRScheduler):
         return lr_factor
 
 
-def train_instanovo(train_df,val_df,config,model_filename) -> None:
-    """Train the model."""
-    logging.info("Initializing training.")
+# def main() -> None:
+#     """Train the model."""
+#     logging.info("Initializing training.")
 
-    train(train_df, val_df, config, model_filename)
+#     parser = argparse.ArgumentParser()
+
+#     parser.add_argument("train_path")
+#     parser.add_argument("valid_path")
+#     parser.add_argument("--config", default="base.yaml")
+#     parser.add_argument("--n_gpu", default=1)
+#     parser.add_argument("--n_workers", default=8)
+
+#     args = parser.parse_args()
+
+#     config_path = os.path.join(
+#         os.path.dirname(os.path.realpath(__file__)), f"../../configs/instanovo/{args.config}"
+#     )
+
+#     with open(config_path) as f_in:
+#         config = yaml.safe_load(f_in)
+
+#     # config["residues"] = {str(aa): float(mass) for aa, mass in config["residues"].items()}
+#     config["n_gpu"] = int(args.n_gpu)
+#     config["n_workers"] = int(args.n_workers)
+
+#     if config["n_gpu"] > 1:
+#         raise Exception("n_gpu > 1 currently not supported.")
+
+#     if not config["train_from_scratch"]:
+#         model_path = config["resume_checkpoint"]
+#     else:
+#         model_path = None
+
+#     train(args.train_path, args.valid_path, config, model_path)
 
 
-
+# if __name__ == "__main__":
+#     main()

@@ -3,10 +3,10 @@ from __future__ import annotations
 import torch
 from torch.distributions import Categorical
 
-from novobench.models.instanovo.instanovo_modeling.constants import DIFFUSION_EVAL_STEPS
-from novobench.models.instanovo.instanovo_modeling.constants import DIFFUSION_START_STEP
-from novobench.models.instanovo.instanovo_modeling.diffusion.multinomial_diffusion import DiffusionLoss
-from novobench.models.instanovo.instanovo_modeling.diffusion.multinomial_diffusion import MultinomialDiffusion
+DIFFUSION_START_STEP = 15
+DIFFUSION_EVAL_STEPS = (3, 8, 13, 18)
+from pynovo.models.instanovo.instanovo_modeling.diffusion.multinomial_diffusion import DiffusionLoss
+from pynovo.models.instanovo.instanovo_modeling.diffusion.multinomial_diffusion import MultinomialDiffusion
 
 
 class DiffusionDecoder:

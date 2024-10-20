@@ -12,8 +12,8 @@ from torch.distributions import Categorical
 from torch.nn.functional import log_softmax
 from torch.nn.functional import one_hot
 
-from novobench.models.instanovo.instanovo_modeling.diffusion.model import MassSpectrumTransFusion
-from novobench.models.instanovo.instanovo_modeling.utils.residues import ResidueSet
+from pynovo.models.instanovo.instanovo_modeling.diffusion.model import MassSpectrumTransFusion
+from pynovo.models.instanovo.instanovo_modeling.utils.residues import ResidueSet
 
 
 def cosine_beta_schedule(timesteps: int, s: float = 0.008) -> torch.FloatTensor:

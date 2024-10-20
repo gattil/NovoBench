@@ -5,15 +5,26 @@ from typing import Any
 
 import torch
 from torch.nn.functional import one_hot
+from enum import Enum
+from tqdm import tqdm
+from pynovo.models.instanovo.instanovo_modeling.inference.interfaces import Decodable
+from pynovo.models.instanovo.instanovo_modeling.inference.interfaces import Decoder
+class PrecursorDimension(Enum):
+    """Names corresponding to indices in the precursor tensor."""
 
-from novobench.models.instanovo.instanovo_modeling.constants import CARBON_MASS_DELTA
-from novobench.models.instanovo.instanovo_modeling.constants import H2O_MASS
-from novobench.models.instanovo.instanovo_modeling.constants import INTEGER
-from novobench.models.instanovo.instanovo_modeling.constants import MASS_SCALE
-from novobench.models.instanovo.instanovo_modeling.constants import PRECURSOR_DIM
-from novobench.models.instanovo.instanovo_modeling.constants import PrecursorDimension
-from novobench.models.instanovo.instanovo_modeling.inference.interfaces import Decodable
-from novobench.models.instanovo.instanovo_modeling.inference.interfaces import Decoder
+    PRECURSOR_MASS = 0
+    PRECURSOR_CHARGE = 1
+    PRECURSOR_MZ = 2
+
+H2O_MASS = 18.0106
+CARBON_MASS_DELTA = 1.00335
+PROTON_MASS_AMU = 1.007276
+MASS_SCALE = 10000
+PRECURSOR_DIM = 3
+
+INTEGER = torch.int64
+DIFFUSION_START_STEP = 15
+DIFFUSION_EVAL_STEPS = (3, 8, 13, 18)
 
 
 @dataclass
@@ -464,6 +475,7 @@ class BeamSearchDecoder(Decoder):
                 decoding fails i.e. no sequence that fits the precursor mass
                 to within a tolerance is found.
         """
+        # import pdb; pdb.set_trace()
         with torch.no_grad():
             batch_size = spectra.shape[0]
             complete_items: list[list[ScoredSequence]] = [[] for _ in range(batch_size)]
@@ -492,7 +504,7 @@ class BeamSearchDecoder(Decoder):
                 mass_buffers=mass_buffers,
             )
 
-            for _ in range(max_length):
+            for _ in tqdm(range(max_length)):
                 if beam.is_empty():
                     break
 
@@ -514,6 +526,7 @@ class BeamSearchDecoder(Decoder):
                     mass_buffer=mass_buffers,
                     max_isotope=max_isotope,
                 )
+
                 for i, items in enumerate(complete_candidates):
                     complete_items[i].extend(items)
 

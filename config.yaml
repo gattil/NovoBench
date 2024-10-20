@@ -2,7 +2,7 @@
 random_seed: 454
 
 # Spectrum processing options.
-n_peaks: 150
+n_peaks: 200
 min_mz: 50.52564895  # 1.0005079 * 50.5
 max_mz: 2500.0
 min_intensity: 0.01
@@ -16,17 +16,19 @@ isotope_error_range: [0, 1]
 n_workers: 64
 
 # training params
-warmup_iters: 100_000
-max_iters: 600_000
+# warmup_iters: 100_000
+# max_iters: 600_000
+warmup_iters: 48
+max_iters: 480
 num_sanity_val_steps: 0
 
 # val freq choose one of the following
 val_check_interval: 
-check_val_every_n_epoch: 1
+check_val_every_n_epoch: 10
 
-learning_rate: 5e-4
+learning_rate: 5e-5
 weight_decay: 1e-5
-max_epochs: 5
+max_epochs: 30
 
 train_batch_size: 32
 
@@ -170,3 +172,52 @@ helixnovo:
     "Q(+.98)": 129.042594
   decoding: 'beam search'  # select in ["beam search",'greedy']
   n_beams: 5
+
+
+instanovo:
+  dim_model: 768
+  n_head: 16
+  dim_feedforward: 1024
+  n_layers: 9
+  dropout: 0.1
+  dim_intensity:
+  custom_encoder:
+
+  use_depthcharge: False
+  enc_type: "instanovo"
+  dec_type: "depthcharge"
+  dec_precursor_sos: True
+  max_length: 30
+  residues:
+    "G": 57.021464
+    "A": 71.037114
+    "S": 87.032028
+    "P": 97.052764
+    "V": 99.068414
+    "T": 101.047670
+    "C(+57.02)": 160.030649
+    # "C": 160.030649 # V1
+    "L": 113.084064
+    "I": 113.084064
+    "N": 114.042927
+    "D": 115.026943
+    "Q": 128.058578
+    "K": 128.094963
+    "E": 129.042593
+    "M": 131.040485
+    "H": 137.058912
+    "F": 147.068414
+    "R": 156.101111
+    "Y": 163.063329
+    "W": 186.079313
+    "M(+15.99)": 147.035400
+    "N(+.98)": 115.026943
+    "Q(+.98)": 129.042594
+  n_beams: 5
+  # don't change this
+  n_gpu: 1
+  grad_accumulation: 1
+  gradient_clip_val: 10.0
+  save_model: True
+
+  

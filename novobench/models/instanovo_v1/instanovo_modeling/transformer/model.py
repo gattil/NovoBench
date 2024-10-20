@@ -10,8 +10,8 @@ from depthcharge.components.encoders import PositionalEncoder
 from torch import nn
 from torch import Tensor
 
-from novobench.models.instanovo.instanovo_modeling.transformer.layers import MultiScalePeakEmbedding
-from novobench.models.instanovo.instanovo_modeling.transformer.layers import PositionalEncoding
+from pynovo.models.instanovo.instanovo_modeling.transformer.layers import MultiScalePeakEmbedding
+from pynovo.models.instanovo.instanovo_modeling.transformer.layers import PositionalEncoding
 
 
 class InstaNovo(nn.Module):

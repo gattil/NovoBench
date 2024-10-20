@@ -1,55 +1,51 @@
 import sys
 import os
 import csv
-sys.path.append("/path/to/PyNovo/")
+import argparse
 
-from pynovo.datasets import CustomDataset, NineSpeciesDataset
-from pynovo.models.instanovo import CasanovoRunner, CasanovoConfig
+current_dir = os.path.abspath(os.getcwd())
+sys.path.append(current_dir)
+from novobench.datasets import CustomDataset, NineSpeciesDataset
+from novobench.models.instanovo import InstanovoRunner 
+from novobench.utils.config import Config
 
 
-file_mapping = {
+
+def train(config_file, data_dir, model_file):
+    config = Config(config_file, "instanovo")
+    file_mapping = {
     "train" : "train.parquet",
     "valid" : "valid.parquet",
-}
-
-def train():
-    dataset = CustomDataset("/usr/commondata/public/jingbo/seven_species/", file_mapping)
-    data = dataset.load_data(transform = CasanovoRunner.preprocessing_pipeline())
-    config = CasanovoConfig()
-    model = CasanovoRunner(config)
+    }
+    dataset = CustomDataset(data_dir, file_mapping)
+    data = dataset.load_data(transform = InstanovoRunner.preprocessing_pipeline(config))
+    model = InstanovoRunner(config, model_file)
     model.train(data.get_train(), data.get_valid())
 
 
-train()
 
 
-def eval(data_dir, model_file, saved_path):
-    # dataset = CustomDataset("/usr/commondata/public/jingbo/nine_species/", file_mapping)
-    # data = dataset.load_data(transform = CasanovoRunner.preprocessing_pipeline())
-    # config = CasanovoConfig()
-    # model = CasanovoRunner(config,"/usr/commondata/local_public/jingbo/casanovo/nine_species/epoch=19-step=300000.ckpt")
-    # model.evaluate(data.get_valid())
-    if os.path.exists(saved_path):
-        base, extension = os.path.splitext(saved_path)
-        counter = 1
-        saved_path = f"{base}_{counter}{extension}"
-        while os.path.exists(saved_path):
-            counter += 1
-            saved_path = f"{base}_{counter}{extension}"
-        print(f"Saved file exist, use {saved_path} instead!")   
-    with open(saved_path, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['peptides_true', 'peptides_pred', 'peptides_score'])
-    
+def denovo(config_file,data_dir, model_file, saved_path):
+    config = Config(config_file, "instanovo")
     file_mapping = {"valid" : "test.parquet",}
     dataset = CustomDataset(data_dir, file_mapping)
-    data = dataset.load_data(transform = CasanovoRunner.preprocessing_pipeline())
-    config = CasanovoConfig()
-    config.calculate_precision = True
-    
-    model = CasanovoRunner(config, model_file, saved_path)
-    model.evaluate(data.get_valid())
+    data = dataset.load_data(transform = InstanovoRunner.preprocessing_pipeline(config))
+    model = InstanovoRunner(config, model_file, saved_path)
+    model.denovo(data.get_valid())
 
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", type=str, default="train")
+    parser.add_argument("--data_path", type=str,required=True)
+    parser.add_argument("--config_path", type=str,required=True)
+    parser.add_argument("--ckpt_path", type=str,default=None)
+    parser.add_argument("--denovo_output_path", type=str,default='')
+    args = parser.parse_args()
 
-        
+    if args.mode == "train":
+        train(args.config_path, args.data_path, args.ckpt_path)
+    elif args.mode == "denovo":
+        denovo(args.config_path, args.data_path, args.ckpt_path, args.denovo_output_path) 
+    else:
+        raise ValueError("Invalid mode!")

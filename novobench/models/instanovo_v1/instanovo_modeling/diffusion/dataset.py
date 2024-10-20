@@ -6,8 +6,8 @@ from typing import NamedTuple
 import polars
 import torch
 
-from novobench.models.instanovo.instanovo_modeling.constants import PROTON_MASS_AMU
-from novobench.models.instanovo.instanovo_modeling.utils.residues import ResidueSet
+PROTON_MASS_AMU = 1.007276
+from pynovo.models.instanovo.instanovo_modeling.utils.residues import ResidueSet
 
 
 class SpectrumBatch(NamedTuple):

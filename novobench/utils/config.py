@@ -60,6 +60,8 @@ class Config:
             self.check_adanovo_config_type()
         elif model_name == 'helixnovo':
             self.check_helixnovo_config_type()
+        elif model_name == 'instanovo':
+            self.check_instanovo_config_type()
 
     def check_casanovo_config_type(self):
         config_types = dict(
@@ -150,3 +152,35 @@ class Config:
         for key, value in self.config['helixnovo'].items():
             setattr(self, key, value)
 
+    def check_instanovo_config_type(self):
+        config_types = dict(
+            dim_model=int,
+            n_head=int,
+            dim_feedforward=int,
+            n_layers=int,
+            dropout=float,
+            dim_intensity=int,
+            max_length=int,
+            custom_encoder=str,
+            use_depthcharge=bool,
+            enc_type=str,
+            dec_type=str,
+            dec_precursor_sos=bool,
+            residues=dict,
+            n_beams=int,
+            grad_accumulation=int,
+            gradient_clip_val=float,
+            save_model=bool,
+        )
+        for k, t in config_types.items():
+            try:
+                if self.config['instanovo'][k] is not None:
+                    self.config['instanovo'][k] = t(self.config['instanovo'][k])
+            except (TypeError, ValueError) as e:
+                print("Incorrect type for configuration value %s: %s", k, e)
+                raise TypeError(f"Incorrect type for configuration value {k}: {e}")
+        self.config['instanovo']["residues"] = {
+            str(aa): float(mass) for aa, mass in self.config['instanovo']["residues"].items()}
+        
+        for key, value in self.config['instanovo'].items():
+            setattr(self, key, value)

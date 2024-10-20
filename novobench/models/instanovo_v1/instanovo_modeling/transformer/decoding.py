@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from novobench.models.instanovo.instanovo_modeling.transformer.model import InstaNovo
+from pynovo.instanovo.instanovo_modeling.transformer.model import InstaNovo
 
 
 class BaseDecoder:

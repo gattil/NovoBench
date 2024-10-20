@@ -8,9 +8,9 @@ from transfusion.model import Pogfuse
 from transfusion.model import timestep_embedding
 from transfusion.model import TransFusion
 
-from novobench.models.instanovo.instanovo_modeling.diffusion.config import MassSpectrumModelConfig
-from novobench.models.instanovo.instanovo_modeling.diffusion.layers import CustomSpectrumEncoder
-from novobench.models.instanovo.instanovo_modeling.diffusion.layers import LocalisedSpectrumEncoder
+from pynovo.models.instanovo.instanovo_modeling.diffusion.config import MassSpectrumModelConfig
+from pynovo.models.instanovo.instanovo_modeling.diffusion.layers import CustomSpectrumEncoder
+from pynovo.models.instanovo.instanovo_modeling.diffusion.layers import LocalisedSpectrumEncoder
 
 
 class MassSpectrumTransformer(Pogfuse):

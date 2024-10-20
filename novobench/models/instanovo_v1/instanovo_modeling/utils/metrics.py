@@ -5,9 +5,9 @@ import re
 import jiwer
 import numpy as np
 
-from novobench.models.instanovo.instanovo_modeling.constants import CARBON_MASS_DELTA
-from novobench.models.instanovo.instanovo_modeling.constants import H2O_MASS
-from novobench.models.instanovo.instanovo_modeling.constants import PROTON_MASS_AMU
+H2O_MASS = 18.0106
+CARBON_MASS_DELTA = 1.00335
+PROTON_MASS_AMU = 1.007276
 
 
 class Metrics:

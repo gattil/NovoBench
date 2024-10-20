@@ -4,7 +4,7 @@ import pandas as pd
 import polars as pl
 import spectrum_utils.spectrum as sus
 import torch
-from novobench.data import SpectrumData
+from pynovo.data import SpectrumData
 from torch import nn
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader

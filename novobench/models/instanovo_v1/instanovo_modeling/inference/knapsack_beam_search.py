@@ -3,10 +3,10 @@ from __future__ import annotations
 import numpy
 import torch
 
-from novobench.models.instanovo.instanovo_modeling.constants import CARBON_MASS_DELTA
-from novobench.models.instanovo.instanovo_modeling.inference.beam_search import BeamSearchDecoder
-from novobench.models.instanovo.instanovo_modeling.inference.interfaces import Decodable
-from novobench.models.instanovo.instanovo_modeling.inference.knapsack import Knapsack
+CARBON_MASS_DELTA = 1.00335
+from pynovo.models.instanovo.instanovo_modeling.inference.beam_search import BeamSearchDecoder
+from pynovo.models.instanovo.instanovo_modeling.inference.interfaces import Decodable
+from pynovo.models.instanovo.instanovo_modeling.inference.knapsack import Knapsack
 
 
 class KnapsackBeamSearchDecoder(BeamSearchDecoder):
