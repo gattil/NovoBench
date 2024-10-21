@@ -11,6 +11,7 @@ import logging
 from novobench.transforms import SetRangeMZ, FilterIntensity, RemovePrecursorPeak, ScaleIntensity
 from novobench.transforms.misc import Compose
 from novobench.models.instanovo.instanovo_modeling.transformer.train import train_instanovo
+from novobench.models.instanovo.instanovo_modeling.transformer.denovo import denovo_instanovo
 from typing import Optional
 logger = logging.getLogger('instanovo')
 
@@ -66,6 +67,7 @@ class InstanovoRunner:
         self,
         config,
         model_filename: Optional[str] = None,
+        output_path: Optional[str] = None,
     ) -> None:
         
         
@@ -74,6 +76,7 @@ class InstanovoRunner:
         # adapt to the instanovo config type
         self.config = config.config
         self.model_filename = model_filename
+        self.output_path = output_path
 
 
     def train(self, train_df, val_df):
@@ -87,4 +90,9 @@ class InstanovoRunner:
         model_filename: checkpoint filename
         """
         train_instanovo(train_df, val_df, self.config,self.model_filename)
+
+    def denovo(self, test_df):
+        """De novo sequencing"""
+        denovo_instanovo(test_df, self.config, self.model_filename, self.output_path)
+        
             

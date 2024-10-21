@@ -25,12 +25,12 @@ def train(config_file, data_dir, model_file):
 
 
 
-def denovo(config_file,data_dir, model_file, saved_path):
+def denovo(config_file,data_dir, model_file, output_path):
     config = Config(config_file, "instanovo")
     file_mapping = {"valid" : "test.parquet",}
     dataset = CustomDataset(data_dir, file_mapping)
     data = dataset.load_data(transform = InstanovoRunner.preprocessing_pipeline(config))
-    model = InstanovoRunner(config, model_file, saved_path)
+    model = InstanovoRunner(config, model_file, output_path)
     model.denovo(data.get_valid())
 
 

@@ -150,14 +150,14 @@ class PTModule(ptl.LightningModule):
         y = ["".join(x.sequence) if not isinstance(x, list) else "" for x in p]
         targets = peptides
 
-        aa_prec, aa_recall, pep_recall, _ = self.metrics.compute_precision_recall(targets, y)
-        aa_er = self.metrics.compute_aa_er(targets, y)
+        # aa_prec, aa_recall, pep_recall, _ = self.metrics.compute_precision_recall(targets, y)
+        # aa_er = self.metrics.compute_aa_er(targets, y)
 
         self.valid_metrics["valid_loss"].append(loss.item())
-        self.valid_metrics["aa_er"].append(aa_er)
-        self.valid_metrics["aa_prec"].append(aa_prec)
-        self.valid_metrics["aa_recall"].append(aa_recall)
-        self.valid_metrics["pep_recall"].append(pep_recall)
+        # self.valid_metrics["aa_er"].append(aa_er)
+        # self.valid_metrics["aa_prec"].append(aa_prec)
+        # self.valid_metrics["aa_recall"].append(aa_recall)
+        # self.valid_metrics["pep_recall"].append(pep_recall)
 
         return loss.item()
 
@@ -179,9 +179,9 @@ class PTModule(ptl.LightningModule):
             f"[Epoch {epoch:02d}] train_loss={self.running_loss:.5f}, valid_loss={valid_loss:.5f}"
         )
         logging.info(f"[Epoch {epoch:02d}] Metrics:")
-        for metric in ["aa_er", "aa_prec", "aa_recall", "pep_recall"]:
-            val = np.mean(self.valid_metrics[metric])
-            logging.info(f"[Epoch {epoch:02d}] - {metric:11s}{val:.3f}")
+        # for metric in ["aa_er", "aa_prec", "aa_recall", "pep_recall"]:
+        #     val = np.mean(self.valid_metrics[metric])
+        #     logging.info(f"[Epoch {epoch:02d}] - {metric:11s}{val:.3f}")
 
         self._reset_valid_metrics()
 
@@ -208,7 +208,8 @@ class PTModule(ptl.LightningModule):
         return [self.optim], {"scheduler": self.scheduler, "interval": "step"}
 
     def _reset_valid_metrics(self) -> None:
-        valid_metrics = ["valid_loss", "aa_er", "aa_prec", "aa_recall", "pep_recall"]
+        # valid_metrics = ["valid_loss", "aa_er", "aa_prec", "aa_recall", "pep_recall"]
+        valid_metrics = ["valid_loss"]
         self.valid_metrics: dict[str, list[float]] = {x: [] for x in valid_metrics}
 
 

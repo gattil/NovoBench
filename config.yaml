@@ -16,15 +16,13 @@ isotope_error_range: [0, 1]
 n_workers: 64
 
 # training params
-# warmup_iters: 100_000
-# max_iters: 600_000
-warmup_iters: 48
-max_iters: 480
+warmup_iters: 100_000
+max_iters: 300_000
 num_sanity_val_steps: 0
 
 # val freq choose one of the following
 val_check_interval: 
-check_val_every_n_epoch: 10
+check_val_every_n_epoch: 1
 
 learning_rate: 5e-5
 weight_decay: 1e-5
@@ -33,13 +31,13 @@ max_epochs: 30
 train_batch_size: 32
 
 save_weights_only: True
-model_save_folder_path: "./"
-logger_save_path: "./denovo.log"
+model_save_folder_path: "./save_models/"
+logger_save_path: "./ins_train_9.log"
 
 
 
 # Inference options.
-predict_batch_size: 1024
+predict_batch_size: 32
 
 # don't change this
 devices: 1
@@ -219,5 +217,6 @@ instanovo:
   grad_accumulation: 1
   gradient_clip_val: 10.0
   save_model: True
+  knapsack_path: './instanovo_knapsack/'
 
   

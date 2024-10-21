@@ -171,6 +171,7 @@ class Config:
             grad_accumulation=int,
             gradient_clip_val=float,
             save_model=bool,
+            knapsack_path=str,
         )
         for k, t in config_types.items():
             try:

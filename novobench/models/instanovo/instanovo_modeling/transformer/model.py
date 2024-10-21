@@ -142,6 +142,7 @@ class InstaNovo(nn.Module):
     @classmethod
     def load(cls, path: str) -> nn.Module:
         """Load model from checkpoint."""
+        # import pdb; pdb.set_trace()
         ckpt = torch.load(path, map_location="cpu")
 
         config = ckpt["config"]
@@ -154,18 +155,18 @@ class InstaNovo(nn.Module):
 
         model = cls(
             i2s=i2s,
-            residues=config["residues"],
-            dim_model=config["dim_model"],
-            n_head=config["n_head"],
-            dim_feedforward=config["dim_feedforward"],
-            n_layers=config["n_layers"],
-            dropout=config["dropout"],
-            max_length=config["max_length"],
+            residues=config['instanovo']["residues"],
+            dim_model=config['instanovo']["dim_model"],
+            n_head=config['instanovo']["n_head"],
+            dim_feedforward=config['instanovo']["dim_feedforward"],
+            n_layers=config['instanovo']["n_layers"],
+            dropout=config['instanovo']["dropout"],
+            max_length=config['instanovo']["max_length"],
             max_charge=config["max_charge"],
-            use_depthcharge=config["use_depthcharge"],
-            enc_type=config["enc_type"],
-            dec_type=config["dec_type"],
-            dec_precursor_sos=config["dec_precursor_sos"],
+            use_depthcharge=config['instanovo']["use_depthcharge"],
+            enc_type=config['instanovo']["enc_type"],
+            dec_type=config['instanovo']["dec_type"],
+            dec_precursor_sos=config['instanovo']["dec_precursor_sos"],
         )
         model.load_state_dict(ckpt["state_dict"])
 
