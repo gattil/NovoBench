@@ -20,10 +20,11 @@ conda env create -f novobench.yaml
 conda activate novobench
 ```
 
-## Dataset download
+## Dataset & Checkpoint download
 
 All the necessary data files can be downloaded from the [link](https://huggingface.co/datasets/jingbo02/NovoBench).
 
+The InstaNovo pretrain weight can be downloaded from the [Nine-species](https://github.com/instadeepai/InstaNovo/releases/download/0.1.4/instanovo.pt), [HC-PT](https://github.com/instadeepai/InstaNovo/releases/download/0.1.4/instanovo_yeast.pt).
 ## Train a new  model 
 To train a model from scratch, run:
 ```shell
