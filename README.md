@@ -10,8 +10,24 @@
 </p>
 
 ## 📚 Introduction
-Tandem mass spectrometry has played a pivotal role in advancing proteomics, enabling the analysis of protein composition in biological tissues. Many deep learning methods have been developed for $de$ $novo$ peptide sequencing task, i.e., predicting the peptide sequence for the observed mass spectrum. However, two key challenges seriously hinder the further research of this important task. Firstly, since there is no consensus for the evaluation datasets, the empirical results in different research papers are often not comparable, leading to unfair comparison. Secondly, the current methods are usually limited to amino acid-level or peptide-level precision and recall metrics. In this work, we present the first unified benchmark NovoBench for $de$ $novo$ peptide sequencing, which comprises diverse mass spectrum data, integrated models, and comprehensive evaluation metrics. Recent impressive methods, including DeepNovo, PointNovo, Casanovo, InstaNovo, AdaNovo and $\pi$-HelixNovo are integrated into our framework. In addition to amino acid-level and peptide-level precision and recall, we also evaluate the models' performance in terms of identifying post-tranlational modifications (PTMs), efficiency and robustness to peptide length, noise peaks and missing fragment ratio, which are important influencing factors while seldom be considered. Leveraging this benchmark, we conduct a large-scale study of current methods, report many insightful findings that open up new possibilities for future development. 
+**NovoBench provides a unified framework for *de novo* peptide sequencing, focusing on four key aspects:**  
 
+- 💥 **Datasets** (diverse MS/MS spectrum data)
+    - ✨ Multiple types of  spectrum data
+    - ✨ **Standardized data splits** (ensures fair and reproducible evaluation)  
+
+- 💥 **Models** (integrates state-of-the-art methods)  
+    - ✨ **Included models** (DeepNovo, PointNovo, Casanovo, InstaNovo, AdaNovo, $\pi$-HelixNovo)  
+
+- 💥 **Influencing factors** (evaluates model robustness)  
+    - ✨ **Key factors** (peptide length, noise peaks, missing fragment ratio)  
+
+- 💥 **Evaluation metrics** (comprehensive performance measures)  
+    - ✨ **Comprehensive metrics** (amino acid-level and peptide-level precision/recall, PTM identification, efficiency, confidence)  
+
+NovoBench abstracts *de novo* peptide sequencing into well-defined challenges, providing standardized datasets, integrated models, and evaluation metrics to facilitate large-scale comparative studies and drive future advancements in proteomics.
+
+📑 Please see more details in our [NeurIPS 2024 paper](https://arxiv.org/abs/2406.11906).
 
 ## 📦 Installation 
 This project has provided an environment setting file of conda, users can easily reproduce the environment by the following commands:
@@ -42,7 +58,7 @@ To sequence the mass spectra with NovoBench, use the following command:
 python tests/casanovo.py --mode seq --data_path parquet_path --model_path ckpt_path --denovo_output_path csv_path --config_path config_path
 ``` 
 
-## 💥 Note
+## ⚠️  Note
 
 - DeepNovo and PointNovo <U>need more cpu</U> to process the dataset.
 - The unified config file for DeepNovo and PointNovo is <U>in progress</U>. Currently, other models can run using a single config file.
